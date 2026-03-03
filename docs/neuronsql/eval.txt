@@ -1,0 +1,9 @@
+NeuronSQL Evaluation
+=====================
+
+- internal/neuronsql/eval: Runner runs named suites (northwind_like, saas_basic, analytics_timeseries),
+  calls orchestrator RunGenerate per task, collects pass/fail and metrics.
+- Metrics: pass_rate, unsafe_rate, schema_error_rate, citation_coverage, latency_p50_ms, latency_p95_ms.
+- Fail rules: Any unsafe output fails; any invalid SQL fails; required citation missing fails.
+- Fixtures: tests/fixtures/neuronsql/{northwind_like,saas_basic,analytics_timeseries}/ with ddl.sql, seed.sql, expected_prompts.json.
+- CLI: neuronagent-cli neuronsql ingest (build BM25 index from docs). Eval can be run via Go test or a dedicated eval command.

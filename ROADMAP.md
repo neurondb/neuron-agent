@@ -777,8 +777,8 @@ NeuronAgent already has a solid foundation:
 
 - [NeuronAgent Architecture](docs/architecture.md)
 - [NeuronAgent API Documentation](docs/API.md)
-- [NeuronDB Documentation](../NeuronDB/README.md)
-- [NeuronDB Technology Roadmap](../NeuronDB/docs/TECHNOLOGY_ROADMAP.md)
+- [NeuronDB Documentation](https://github.com/neurondb/neurondb)
+- [NeuronDB Technology Roadmap](https://github.com/neurondb/neurondb/blob/main/docs/technology-roadmap.md)
 - [Agentic AI Guide](../blog/agentic-ai.md)
 
 

@@ -1,0 +1,22 @@
+NeuronSQL API
+=============
+
+Base path: /api/v1/neuronsql (all POST, JSON body; require Authorization header).
+
+POST /api/v1/neuronsql/generate
+  Body: { "db_dsn": string, "db_alias": string?, "question": string, "mode_settings": object? }
+  Response: NeuronSQLResponse (request_id, mode, sql, explanation, citations, validation_report, safety, timings_ms, error).
+
+POST /api/v1/neuronsql/optimize
+  Body: { "db_dsn": string, "db_alias": string?, "sql": string, "mode_settings": object? }
+  Response: NeuronSQLResponse (plan_summary, rewrite_options, index_suggestions, verification_queries).
+
+POST /api/v1/neuronsql/validate
+  Body: { "db_dsn": string, "db_alias": string?, "sql": string }
+  Response: NeuronSQLResponse (validation_report, safety).
+
+POST /api/v1/neuronsql/plpgsql
+  Body: { "db_dsn": string, "db_alias": string?, "signature": string, "purpose": string }
+  Response: NeuronSQLResponse (plpgsql_code, explanation). No CREATE FUNCTION is executed.
+
+Citation format: tool:tool_name:request_id or doc:chunk_id.

@@ -1,0 +1,19 @@
+NeuronSQL Quickstart
+====================
+
+1. Build and run NeuronAgent (with DB and optional PGLang):
+   make build && ./bin/neuron-agent
+   Or with Docker: docker-compose -f docker/docker-compose.neuronsql.yml up --build
+
+2. Run PGLang server (stub or memorable):
+   cd docker/pglang-server && pip install -r requirements.txt && python server.py
+   Or: docker run -p 9090:9090 pglang:latest
+
+3. Set env: PGLANG_ENDPOINT=http://localhost:9090, DB_* or db_dsn in request body.
+
+4. Call generate:
+   curl -X POST http://localhost:8080/api/v1/neuronsql/generate \
+     -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_KEY" \
+     -d '{"db_dsn":"host=localhost port=5432 user=u password=p dbname=d sslmode=disable","question":"List all products"}'
+
+5. Ingest docs for RAG: neuronagent-cli neuronsql ingest --docs-dir docs --index-dir data/neuronsql/index

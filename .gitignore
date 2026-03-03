@@ -26,6 +26,8 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+junit.xml
+**/junit.xml
 
 # IDE
 .idea/

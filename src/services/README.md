@@ -25,8 +25,8 @@ services/
 
 2. Install binary to system path:
    ```bash
-   sudo cp bin/neuronagent /usr/local/bin/neuronagent
-   sudo chmod +x /usr/local/bin/neuronagent
+   sudo cp bin/neuron-agent /usr/local/bin/neuron-agent
+   sudo chmod +x /usr/local/bin/neuron-agent
    ```
 
 3. Create service user (if not exists):
@@ -95,8 +95,8 @@ services/
 
 2. Install binary to system path:
    ```bash
-   sudo cp bin/neuronagent /usr/local/bin/neuronagent
-   sudo chmod +x /usr/local/bin/neuronagent
+   sudo cp bin/neuron-agent /usr/local/bin/neuron-agent
+   sudo chmod +x /usr/local/bin/neuron-agent
    ```
 
 3. Create directories:
@@ -195,12 +195,12 @@ You can also use a YAML configuration file. See `configs/config.yaml.example` fo
 
 2. Verify binary exists and is executable:
    ```bash
-   ls -l /usr/local/bin/neuronagent
+   ls -l /usr/local/bin/neuron-agent
    ```
 
 3. Test running the binary manually:
    ```bash
-   /usr/local/bin/neuronagent
+   /usr/local/bin/neuron-agent
    ```
 
 ### Database connection errors
