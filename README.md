@@ -72,6 +72,10 @@ NeuronAgent integrates with NeuronDB PostgreSQL extension to provide agent runti
 - **[Features](docs/features.md)** - Complete feature list and capabilities
 - **[API Reference](docs/api.md)** - Complete REST API documentation
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[Product gap report](docs/product_gap_report.txt)** - Enterprise readiness and backlog
+- **[Architecture v2](docs/architecture_v2.txt)** - Target architecture with NeuronSQL
+- **[Config env schema](docs/config_env_schema.txt)** - Environment variable reference
+- **[Release checklist](docs/release_checklist.md)** - Release and rollback steps
 
 The official documentation provides:
 - Complete REST API reference with examples

@@ -1,0 +1,22 @@
+# Production Dockerfile for NeuronAgent with ROCm runtime base
+# Use when deploying on AMD GPU nodes (e.g. sidecar or future GPU features).
+ARG GO_VERSION=1.23
+FROM golang:${GO_VERSION}-bookworm AS builder
+WORKDIR /build
+COPY src/go.mod src/go.sum ./
+RUN go mod download
+COPY src/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags="-w -s" -o neuron-agent ./cmd/agent-server
+
+# Final stage: ROCm runtime base (Ubuntu)
+FROM rocm/dev-ubuntu-22.04:5.6-complete
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN groupadd -r neuronagent && useradd -r -g neuronagent -u 1000 -m -d /home/neuronagent neuronagent
+WORKDIR /app
+COPY --from=builder /build/neuron-agent .
+RUN chown -R neuronagent:neuronagent /app
+USER neuronagent
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD nc -z localhost 8080 || exit 1
+CMD ["./neuron-agent"]

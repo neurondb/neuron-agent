@@ -1,0 +1,14 @@
+# PGLang HTTP server for NeuronSQL (stub or memorable inference)
+# Build: from neuron-agent: docker build -f docker/Dockerfile.pglang -t pglang:latest docker/pglang-server
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY docker/pglang-server/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY docker/pglang-server/server.py .
+
+ENV PORT=9090
+EXPOSE 9090
+
+CMD ["python", "server.py"]

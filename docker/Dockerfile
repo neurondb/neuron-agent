@@ -22,7 +22,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
     -ldflags="-w -s -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.vcsRef=${VCS_REF}" \
-    -o neuronagent ./cmd/agent-server
+    -o neuron-agent ./cmd/agent-server
 
 # Final stage - use Debian slim for better compatibility
 FROM debian:bookworm-slim
@@ -59,7 +59,7 @@ RUN groupadd -r neuronagent && useradd -r -g neuronagent -u 1000 -m -d /home/neu
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /build/neuronagent .
+COPY --from=builder /build/neuron-agent .
 
 # Copy configs directory if it exists
 COPY --from=builder /build/configs ./configs
@@ -84,5 +84,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Set entrypoint (can be overridden in docker-compose or runtime)
 # The entrypoint script performs validation and then executes the binary
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["./neuronagent"]
+CMD ["./neuron-agent"]
 
