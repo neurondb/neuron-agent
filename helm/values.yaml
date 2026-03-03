@@ -1,0 +1,64 @@
+# NeuronAgent Helm values
+replicaCount: 1
+image:
+  repository: neurondb/neuron-agent
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# PostgreSQL connection (use existingSecret in production)
+database:
+  host: postgres
+  port: 5432
+  name: neurondb
+  user: neurondb
+  # existingSecret: name of secret containing key DB_PASSWORD (recommended for production)
+  # password: inline (only if existingSecret not set)
+  existingSecret: ""
+  password: ""
+
+# Persistence (optional PVC for agent data)
+persistence:
+  enabled: false
+  size: 10Gi
+  storageClass: ""
+
+# Server
+server:
+  host: "0.0.0.0"
+  port: "8080"
+  readTimeout: 60s
+  writeTimeout: 60s
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+# HPA hints (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70

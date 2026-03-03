@@ -1,0 +1,1 @@
+{"prompts": [{"id": "nw1", "question": "List all products", "expected_keywords": ["SELECT", "products"]}]}

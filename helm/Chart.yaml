@@ -1,0 +1,11 @@
+apiVersion: v2
+name: neuron-agent
+description: NeuronAgent - enterprise agent runtime with NeuronSQL
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - neurondb
+  - agent
+  - neuronsql
+maintainers: []

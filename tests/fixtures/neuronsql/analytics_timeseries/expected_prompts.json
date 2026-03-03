@@ -1,0 +1,1 @@
+{"prompts": [{"id": "ts1", "question": "Daily event counts", "expected_keywords": ["SELECT", "date_trunc", "COUNT"]}]}

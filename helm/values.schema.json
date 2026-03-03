@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NeuronAgent Helm values",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 0, "default": 1 },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string", "default": "neurondb/neuron-agent" },
+        "tag": { "type": "string", "default": "latest" },
+        "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] }
+      }
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "default": "ClusterIP" },
+        "port": { "type": "integer", "default": 8080 }
+      }
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer", "default": 5432 },
+        "name": { "type": "string" },
+        "user": { "type": "string" },
+        "existingSecret": { "type": "string", "description": "Secret name containing DB_PASSWORD key" },
+        "password": { "type": "string", "description": "Inline password (prefer existingSecret in production)" }
+      }
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string", "default": "0.0.0.0" },
+        "port": { "type": "string", "default": "8080" }
+      }
+    },
+    "resources": { "type": "object" },
+    "livenessProbe": { "type": "object" },
+    "readinessProbe": { "type": "object" },
+    "autoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "minReplicas": { "type": "integer", "default": 1 },
+        "maxReplicas": { "type": "integer", "default": 10 },
+        "targetCPUUtilizationPercentage": { "type": "integer", "default": 70 },
+        "targetMemoryUtilizationPercentage": { "type": "integer" }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "storageClass": { "type": "string" },
+        "size": { "type": "string", "default": "10Gi" }
+      }
+    }
+  }
+}
