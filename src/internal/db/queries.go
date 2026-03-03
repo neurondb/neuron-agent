@@ -30,17 +30,26 @@ import (
 const (
 	createAgentQuery = `
 		INSERT INTO neurondb_agent.agents 
-		(name, description, system_prompt, model_name, memory_table, enabled_tools, config)
-		VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-		RETURNING id, created_at, updated_at`
+		(org_id, name, description, system_prompt, model_name, memory_table, enabled_tools, config)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+		RETURNING id, org_id, created_at, updated_at`
 
 	getAgentByIDQuery = `SELECT * FROM neurondb_agent.agents WHERE id = $1`
 
+	getAgentByIDAndOrgQuery = `SELECT * FROM neurondb_agent.agents WHERE id = $1 AND (org_id = $2 OR ($2::uuid IS NULL AND org_id IS NULL))`
+
 	listAgentsQuery = `SELECT * FROM neurondb_agent.agents ORDER BY created_at DESC LIMIT 1000`
+
+	listAgentsByOrgQuery = `SELECT * FROM neurondb_agent.agents WHERE org_id = $1 ORDER BY created_at DESC LIMIT 1000`
 
 	listAgentsWithFilterQuery = `
 		SELECT * FROM neurondb_agent.agents 
 		WHERE ($1::text IS NULL OR name ILIKE $1 OR description ILIKE $1)
+		ORDER BY created_at DESC LIMIT 1000`
+
+	listAgentsWithFilterByOrgQuery = `
+		SELECT * FROM neurondb_agent.agents 
+		WHERE org_id = $1 AND ($2::text IS NULL OR name ILIKE $2 OR description ILIKE $2)
 		ORDER BY created_at DESC LIMIT 1000`
 
 	updateAgentQuery = `
@@ -56,9 +65,9 @@ const (
 /* Session queries */
 const (
 	createSessionQuery = `
-		INSERT INTO neurondb_agent.sessions (agent_id, external_user_id, metadata)
-		VALUES ($1, $2, $3::jsonb)
-		RETURNING id, created_at, last_activity_at`
+		INSERT INTO neurondb_agent.sessions (org_id, agent_id, external_user_id, metadata)
+		VALUES ($1, $2, $3, $4::jsonb)
+		RETURNING id, org_id, created_at, last_activity_at`
 
 	getSessionQuery = `SELECT * FROM neurondb_agent.sessions WHERE id = $1`
 
@@ -295,7 +304,7 @@ func (q *Queries) formatQueryError(operation string, query string, paramCount in
 
 /* Agent methods */
 func (q *Queries) CreateAgent(ctx context.Context, agent *Agent) error {
-	params := []interface{}{agent.Name, agent.Description, agent.SystemPrompt, agent.ModelName,
+	params := []interface{}{agent.OrgID, agent.Name, agent.Description, agent.SystemPrompt, agent.ModelName,
 		agent.MemoryTable, agent.EnabledTools, agent.Config}
 	err := q.DB.GetContext(ctx, agent, createAgentQuery, params...)
 	if err != nil {
@@ -322,6 +331,31 @@ func (q *Queries) ListAgents(ctx context.Context) ([]Agent, error) {
 	err := q.DB.SelectContext(ctx, &agents, listAgentsQuery)
 	if err != nil {
 		return nil, q.formatQueryError("SELECT", listAgentsQuery, 0, "neurondb_agent.agents", err)
+	}
+	return agents, nil
+}
+
+/* ListAgentsByOrg returns agents for the given org (multi-tenant). */
+func (q *Queries) ListAgentsByOrg(ctx context.Context, orgID uuid.UUID) ([]Agent, error) {
+	var agents []Agent
+	err := q.DB.SelectContext(ctx, &agents, listAgentsByOrgQuery, orgID)
+	if err != nil {
+		return nil, q.formatQueryError("SELECT", listAgentsByOrgQuery, 1, "neurondb_agent.agents", err)
+	}
+	return agents, nil
+}
+
+/* ListAgentsWithFilterByOrg returns agents for the given org with optional search filter. */
+func (q *Queries) ListAgentsWithFilterByOrg(ctx context.Context, orgID uuid.UUID, search *string) ([]Agent, error) {
+	var agents []Agent
+	var searchPattern *string
+	if search != nil && *search != "" {
+		pattern := "%" + *search + "%"
+		searchPattern = &pattern
+	}
+	err := q.DB.SelectContext(ctx, &agents, listAgentsWithFilterByOrgQuery, orgID, searchPattern)
+	if err != nil {
+		return nil, q.formatQueryError("SELECT", listAgentsWithFilterByOrgQuery, 2, "neurondb_agent.agents", err)
 	}
 	return agents, nil
 }
@@ -369,7 +403,7 @@ func (q *Queries) DeleteAgent(ctx context.Context, id uuid.UUID) error {
 
 /* Session methods */
 func (q *Queries) CreateSession(ctx context.Context, session *Session) error {
-	params := []interface{}{session.AgentID, session.ExternalUserID, session.Metadata}
+	params := []interface{}{session.OrgID, session.AgentID, session.ExternalUserID, session.Metadata}
 	err := q.DB.GetContext(ctx, session, createSessionQuery, params...)
 	if err != nil {
 		return q.formatQueryError("INSERT", createSessionQuery, len(params), "neurondb_agent.sessions", err)

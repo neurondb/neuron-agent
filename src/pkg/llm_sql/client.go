@@ -157,8 +157,8 @@ func extractExplanation(content string) string {
 	if end != -1 && len(content) > end+6 {
 		explanation := content[end+6:]
 		// Remove "Explanation: " prefix if present
-		explanation = bytes.TrimPrefix([]byte(explanation), []byte("Explanation: "))
-		return string(bytes.TrimSpace(explanation))
+		explanation = string(bytes.TrimPrefix([]byte(explanation), []byte("Explanation: ")))
+		return string(bytes.TrimSpace([]byte(explanation)))
 	}
 	
 	return ""

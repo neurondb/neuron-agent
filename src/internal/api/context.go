@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/neurondb/NeuronAgent/internal/auth"
 	"github.com/neurondb/NeuronAgent/internal/db"
 )
 
@@ -28,10 +29,10 @@ func GetAPIKeyFromContext(ctx context.Context) (*db.APIKey, bool) {
 	return apiKey, ok
 }
 
-/* GetPrincipalFromContext gets the principal from context */
+/* GetPrincipalFromContext gets the principal from context (uses auth for shared key). */
 func GetPrincipalFromContext(ctx context.Context) (*db.Principal, bool) {
-	principal, ok := ctx.Value(principalContextKey).(*db.Principal)
-	return principal, ok
+	principal := auth.GetPrincipal(ctx)
+	return principal, principal != nil
 }
 
 /* MustGetAPIKeyFromContext gets the API key from context or returns error */

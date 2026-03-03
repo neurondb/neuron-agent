@@ -84,7 +84,13 @@ type MessageResponse struct {
 }
 
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code"`
+	RequestID  string                 `json:"request_id"`
+	ErrorCode  string                 `json:"error_code"`
+	Message    string                 `json:"message"`
+	Details    map[string]interface{} `json:"details,omitempty"`
+	Retryable  bool                   `json:"retryable"`
+	DocsURL    string                 `json:"docs_url,omitempty"`
+	/* Legacy: code (HTTP status) and error (same as message) for backwards compatibility */
+	Code  int    `json:"code"`
+	Error string `json:"error"`
 }

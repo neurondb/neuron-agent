@@ -1,5 +1,7 @@
 package llm_sql
 
+import "encoding/json"
+
 // GenerateSQLRequest represents a request to generate SQL
 type GenerateSQLRequest struct {
 	Prompt  string          `json:"prompt" binding:"required"`

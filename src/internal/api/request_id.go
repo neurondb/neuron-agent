@@ -42,6 +42,7 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 
 		/* Add to response header */
 		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set("X-API-Version", "v1")
 
 		next.ServeHTTP(w, r)
 	})

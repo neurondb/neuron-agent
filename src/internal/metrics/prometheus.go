@@ -204,7 +204,105 @@ var (
 		},
 		[]string{"key_id"},
 	)
+
+	/* NeuronSQL metrics */
+	neuronsqlRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "neuronsql_requests_total",
+			Help: "Total NeuronSQL API requests",
+		},
+		[]string{"mode", "status"},
+	)
+	neuronsqlLatencySeconds = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "neuronsql_latency_seconds",
+			Help:    "NeuronSQL request latency",
+			Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30},
+		},
+		[]string{"mode"},
+	)
+	neuronsqlPolicyBlocksTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "neuronsql_policy_blocks_total",
+			Help: "Total requests blocked by NeuronSQL policy",
+		},
+	)
+
+	/* Policy blocks by reason (enterprise observability) */
+	policyBlocksTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "neurondb_agent_policy_blocks_total",
+			Help: "Total policy blocks by reason code",
+		},
+		[]string{"reason_code"},
+	)
+
+	/* Memory promotions (episodic -> semantic, etc.) */
+	memoryPromotionsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "neurondb_agent_memory_promotions_total",
+			Help: "Total memory promotions",
+		},
+		[]string{"agent_id", "from_level", "to_level"},
+	)
+
+	/* Queue depth gauge (job queue) */
+	queueDepth = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "neurondb_agent_queue_depth",
+			Help: "Current depth of the job queue",
+		},
+	)
+
+	/* Cost per workspace (for governance) */
+	costPerWorkspace = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "neurondb_agent_cost_per_workspace_total",
+			Help: "Cumulative cost per workspace",
+		},
+		[]string{"workspace_id", "org_id"},
+	)
 )
+
+/* RecordNeuronSQLRequest records a NeuronSQL API request */
+func RecordNeuronSQLRequest(mode, status string, duration time.Duration) {
+	neuronsqlRequestsTotal.WithLabelValues(mode, status).Inc()
+	neuronsqlLatencySeconds.WithLabelValues(mode).Observe(duration.Seconds())
+}
+
+/* RecordNeuronSQLPolicyBlock records a policy block */
+func RecordNeuronSQLPolicyBlock() {
+	neuronsqlPolicyBlocksTotal.Inc()
+}
+
+/* RecordPolicyBlock records a policy block with reason code (enterprise observability). */
+func RecordPolicyBlock(reasonCode string) {
+	if reasonCode == "" {
+		reasonCode = "unknown"
+	}
+	policyBlocksTotal.WithLabelValues(reasonCode).Inc()
+}
+
+/* RecordMemoryPromotion records a memory promotion (e.g. episodic -> semantic). */
+func RecordMemoryPromotion(agentID, fromLevel, toLevel string) {
+	memoryPromotionsTotal.WithLabelValues(agentID, fromLevel, toLevel).Inc()
+}
+
+/* SetQueueDepth sets the current job queue depth gauge. */
+func SetQueueDepth(n int) {
+	queueDepth.Set(float64(n))
+}
+
+/* RecordCostPerWorkspace records cost attributed to a workspace/org. */
+func RecordCostPerWorkspace(workspaceID, orgID string, cost float64) {
+	if workspaceID == "" {
+		workspaceID = "default"
+	}
+	if orgID == "" {
+		orgID = "default"
+	}
+	costPerWorkspace.WithLabelValues(workspaceID, orgID).Add(cost)
+}
 
 /* RecordHTTPRequest records an HTTP request */
 func RecordHTTPRequest(method, endpoint string, status int, duration time.Duration) {

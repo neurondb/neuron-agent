@@ -31,7 +31,7 @@ import (
 type contextKey string
 
 const apiKeyContextKey contextKey = "api_key"
-const principalContextKey contextKey = "principal"
+const rejectUnknownFieldsKey contextKey = "reject_unknown_fields"
 
 /* RequestTimeoutMiddleware sets a deadline on the request context so handlers do not run indefinitely */
 func RequestTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
@@ -127,7 +127,7 @@ func AuthMiddleware(keyManager *auth.APIKeyManager, principalManager *auth.Princ
 			/* Add API key and principal to context */
 			ctx := context.WithValue(r.Context(), apiKeyContextKey, apiKey)
 			if principal != nil {
-				ctx = context.WithValue(ctx, principalContextKey, principal)
+				ctx = auth.WithPrincipal(ctx, principal)
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -272,4 +272,17 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+/* RejectUnknownFieldsMiddleware sets context so DecodeJSON disallows unknown fields when cfg.RejectUnknownFields is true */
+func RejectUnknownFieldsMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if cfg != nil && cfg.RejectUnknownFields {
+				ctx := context.WithValue(r.Context(), rejectUnknownFieldsKey, true)
+				r = r.WithContext(ctx)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

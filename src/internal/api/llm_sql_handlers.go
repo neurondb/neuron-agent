@@ -1,10 +1,9 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-	
+
 	"github.com/neurondb/NeuronAgent/pkg/llm_sql"
 )
 

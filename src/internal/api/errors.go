@@ -107,6 +107,49 @@ var (
 	ErrInternal     = NewError(http.StatusInternalServerError, "internal server error", nil)
 )
 
+/* DefaultDocsURL is the base URL for error documentation */
+const DefaultDocsURL = "https://docs.neurondb.ai/errors"
+
+/* ErrorCodeFromHTTP maps HTTP status to a stable error_code string */
+func ErrorCodeFromHTTP(code int) string {
+	switch code {
+	case http.StatusBadRequest:
+		return "bad_request"
+	case http.StatusUnauthorized:
+		return "unauthorized"
+	case http.StatusForbidden:
+		return "forbidden"
+	case http.StatusNotFound:
+		return "not_found"
+	case http.StatusConflict:
+		return "conflict"
+	case http.StatusTooManyRequests:
+		return "rate_limit_exceeded"
+	case http.StatusInternalServerError:
+		return "internal_error"
+	case http.StatusServiceUnavailable:
+		return "service_unavailable"
+	case http.StatusGatewayTimeout:
+		return "gateway_timeout"
+	default:
+		if code >= 500 {
+			return "server_error"
+		}
+		if code >= 400 {
+			return "client_error"
+		}
+		return "unknown"
+	}
+}
+
+/* RetryableFromHTTP returns true for status codes that clients may retry */
+func RetryableFromHTTP(code int) bool {
+	return code == http.StatusTooManyRequests ||
+		code == http.StatusServiceUnavailable ||
+		code == http.StatusGatewayTimeout ||
+		(code >= 500 && code < 600)
+}
+
 /* WrapError wraps an error with request ID */
 func WrapError(err *APIError, requestID string) *APIError {
 	if err == nil {

@@ -147,6 +147,49 @@ func LoadFromEnv(cfg *Config) error {
 		cfg.Multimodal.OCRProvider = provider
 	}
 
+	/* Profile and validation */
+	if profile := os.Getenv("CONFIG_PROFILE"); profile != "" {
+		cfg.Profile = profile
+	}
+	if env := os.Getenv("ENV"); env != "" && cfg.Profile == "" {
+		cfg.Profile = env
+	}
+	if profile := os.Getenv("COMPLIANCE_PROFILE"); profile != "" {
+		cfg.Compliance.Profile = profile
+	}
+	if v := os.Getenv("CONFIG_REJECT_UNKNOWN_FIELDS"); v == "true" || v == "1" {
+		cfg.RejectUnknownFields = true
+	}
+	if v := os.Getenv("AGENT_DETERMINISTIC_MODE"); v == "true" || v == "1" {
+		cfg.Agent.DeterministicMode = true
+	}
+	if d := os.Getenv("TOOLS_TIMEOUT"); d != "" {
+		if parsed, err := time.ParseDuration(d); err == nil {
+			cfg.Tools.Timeout = parsed
+		}
+	}
+	if d := os.Getenv("WORKFLOW_MAX_DURATION"); d != "" {
+		if parsed, err := time.ParseDuration(d); err == nil {
+			cfg.Workflow.MaxDuration = parsed
+		}
+	}
+
+	/* Modules: enable/disable via MODULE_<NAME>_ENABLED (e.g. MODULE_NEURONSQL_ENABLED=true) */
+	if cfg.Modules == nil {
+		cfg.Modules = make(map[string]ModuleEntry)
+	}
+	for _, name := range []string{"neuronsql"} {
+		key := "MODULE_" + strings.ToUpper(strings.ReplaceAll(name, "-", "_")) + "_ENABLED"
+		if v := os.Getenv(key); v != "" {
+			ent := cfg.Modules[name]
+			ent.Enabled = v == "true" || v == "1"
+			if ent.Config == nil {
+				ent.Config = make(map[string]interface{})
+			}
+			cfg.Modules[name] = ent
+		}
+	}
+
 	return nil
 }
 
