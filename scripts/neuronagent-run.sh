@@ -114,8 +114,8 @@ export SERVER_PORT="${SERVER_PORT:-8080}"
 
 # Try to find the binary
 BINARY_PATH=""
-if [ -f "${SCRIPT_DIR}/bin/neuronagent" ]; then
-    BINARY_PATH="${SCRIPT_DIR}/bin/neuronagent"
+if [ -f "${SCRIPT_DIR}/bin/neuron-agent" ]; then
+    BINARY_PATH="${SCRIPT_DIR}/bin/neuron-agent"
 elif [ -f "${SCRIPT_DIR}/agent-server" ]; then
     BINARY_PATH="${SCRIPT_DIR}/agent-server"
 fi
@@ -125,8 +125,8 @@ if [ -z "$BINARY_PATH" ] || [ ! -f "$BINARY_PATH" ]; then
     if [ -f "Makefile" ]; then
         echo -e "${BLUE}Binary not found, building from source...${NC}"
         if make build 2>/dev/null; then
-            if [ -f "${SCRIPT_DIR}/bin/neuronagent" ]; then
-                BINARY_PATH="${SCRIPT_DIR}/bin/neuronagent"
+            if [ -f "${SCRIPT_DIR}/bin/neuron-agent" ]; then
+                BINARY_PATH="${SCRIPT_DIR}/bin/neuron-agent"
             fi
         else
             echo -e "${YELLOW}Warning: Build failed, will try to use go run${NC}"

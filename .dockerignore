@@ -1,0 +1,37 @@
+# Git and IDE
+.git
+.gitignore
+.cursor
+*.swp
+*~
+
+# Build artifacts
+bin/
+*.exe
+*.test
+coverage.out
+
+# Test and dev
+*_test.go
+pgdata_test/
+*.plan.md
+
+# Docs and misc
+docs/
+*.md
+!configs/*.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Node (if any)
+node_modules/
+npm-debug.log
+
+# Terraform
+terraform/.terraform
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl

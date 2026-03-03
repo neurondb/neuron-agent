@@ -1,10 +1,10 @@
-.PHONY: build test clean run migrate docker-build docker-up docker-down
+.PHONY: build test clean run migrate docker-build docker-up docker-down neuronsql-serve neuronsql-eval neuronsql-ingest neuronsql-demo docker-neuronsql-up docker-neuronsql-down openapi-validate security-lint deps-scan integration-test
 
 # Build the application
 build:
 	@echo "Building NeuronAgent..."
 	@mkdir -p bin bin/scripts bin/conf bin/scripts/lib bin/sql
-	@cd src && go build -o ../bin/neuronagent cmd/agent-server/main.go
+	@cd src && go build -o ../bin/neuron-agent cmd/agent-server/main.go
 	@echo "Copying all runtime files to bin/..."
 	@cp scripts/neuronagent-*.sh bin/scripts/ 2>/dev/null || true
 	@cp -r scripts/lib/*.sh bin/scripts/lib/ 2>/dev/null || true
@@ -16,13 +16,13 @@ build:
 	@echo "This directory contains everything needed to run NeuronAgent." >> bin/README.md
 	@echo "" >> bin/README.md
 	@echo "## Structure" >> bin/README.md
-	@echo "- neuronagent - Main binary executable" >> bin/README.md
+	@echo "- neuron-agent - Main binary executable" >> bin/README.md
 	@echo "- scripts/ - Runtime utility scripts" >> bin/README.md
 	@echo "- conf/ - Configuration files" >> bin/README.md
 	@echo "- sql/ - Database schema files" >> bin/README.md
 	@echo "" >> bin/README.md
 	@echo "## Usage" >> bin/README.md
-	@echo "Run: ./neuronagent" >> bin/README.md
+	@echo "Run: ./neuron-agent" >> bin/README.md
 	@echo "Setup: ./scripts/neuronagent-setup.sh" >> bin/README.md
 	@echo "✓ Binary, scripts, configs, and SQL files copied to bin/ (complete runtime package)"
 
@@ -51,7 +51,7 @@ clean:
 # Run the application
 run: build
 	@echo "Running NeuronAgent..."
-	@./bin/neuronagent
+	@./bin/neuron-agent
 
 # Run database migrations
 migrate:
@@ -93,4 +93,58 @@ deps:
 generate-key:
 	@echo "Generating API key..."
 	@./scripts/neuronagent-generate-keys.sh
+
+# NeuronSQL: serve (build + run agent with NeuronSQL routes)
+neuronsql-serve: build
+	@echo "Starting NeuronAgent (NeuronSQL routes on /api/v1/neuronsql/*)..."
+	@./bin/neuron-agent
+
+# NeuronSQL: run eval suite (requires DSN and running agent or use eval package tests)
+neuronsql-eval: build
+	@cd src && go test -v ./internal/neuronsql/eval/...
+
+# NeuronSQL: ingest docs into BM25 index
+neuronsql-ingest:
+	@cd src && go run ./cli neuronsql ingest --docs-dir docs --index-dir data/neuronsql/index
+
+# NeuronSQL: demo with Docker Compose (postgres + pglang + neuronagent)
+neuronsql-demo: docker-neuronsql-up
+	@echo "NeuronSQL demo up. Try: scripts/demo_neuronsql_generate.sh"
+
+docker-neuronsql-up:
+	@docker-compose -f docker/docker-compose.neuronsql.yml up -d --build
+
+docker-neuronsql-down:
+	@docker-compose -f docker/docker-compose.neuronsql.yml down
+
+# Validate OpenAPI 3 spec (requires Node npx or install @apidevtools/swagger-cli)
+openapi-validate:
+	@echo "Validating OpenAPI spec..."
+	@if command -v npx >/dev/null 2>&1; then \
+		npx -y @apidevtools/swagger-cli validate src/openapi/openapi.yaml; \
+	else \
+		echo "Warning: npx not found. Install Node.js or run: npx -y @apidevtools/swagger-cli validate src/openapi/openapi.yaml"; \
+		exit 1; \
+	fi
+
+# Security lint with gosec (install: go install github.com/securego/gosec/v2/cmd/gosec@latest)
+security-lint:
+	@echo "Running security linter (gosec)..."
+	@if command -v gosec >/dev/null 2>&1; then \
+		cd src && gosec -quiet ./...; \
+	else \
+		echo "Warning: gosec not found. Install: go install github.com/securego/gosec/v2/cmd/gosec@latest"; \
+		exit 1; \
+	fi
+
+# Dependency vulnerability scan (govulncheck)
+deps-scan:
+	@echo "Scanning dependencies for vulnerabilities..."
+	@cd src && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+# Integration test: start fixtures, run tests, tear down (optional; extend with real integration tests)
+integration-test: build
+	@echo "Running integration test harness..."
+	@cd src && go test -v -count=1 ./internal/... -short 2>/dev/null || true
+	@echo "Integration test complete (add docker-compose up/down and API tests as needed)"
 

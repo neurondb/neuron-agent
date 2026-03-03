@@ -1,0 +1,48 @@
+# NeuronSQL demo: NeuronAgent + PGLang + Postgres (with pg_stat_statements for plan analysis)
+version: "3.8"
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: neurondb
+      POSTGRES_PASSWORD: neurondb
+      POSTGRES_DB: neurondb
+    ports:
+      - "5433:5432"
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neurondb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pglang:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.pglang
+    ports:
+      - "9090:9090"
+    environment:
+      PORT: "9090"
+      PGLANG_STUB_RESPONSE: "SELECT 1;"
+
+  neuronagent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: neurondb
+      DB_USER: neurondb
+      DB_PASSWORD: neurondb
+      PGLANG_ENDPOINT: http://pglang:9090
+      SERVER_HOST: "0.0.0.0"
+      SERVER_PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pglang:
+        condition: service_started

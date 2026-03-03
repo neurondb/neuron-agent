@@ -1,0 +1,23 @@
+# Production Dockerfile for NeuronAgent with CUDA runtime base
+# Use when deploying alongside GPU-dependent sidecars or future GPU features.
+# Build stage same as main Dockerfile (CPU binary).
+ARG GO_VERSION=1.23
+FROM golang:${GO_VERSION}-bookworm AS builder
+WORKDIR /build
+COPY src/go.mod src/go.sum ./
+RUN go mod download
+COPY src/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags="-w -s" -o neuron-agent ./cmd/agent-server
+
+# Final stage: minimal CUDA runtime base (for GPU node placement; app remains CPU)
+FROM nvidia/cuda:12.0.0-runtime-ubuntu22.04
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN groupadd -r neuronagent && useradd -r -g neuronagent -u 1000 -m -d /home/neuronagent neuronagent
+WORKDIR /app
+COPY --from=builder /build/neuron-agent .
+RUN chown -R neuronagent:neuronagent /app
+USER neuronagent
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD nc -z localhost 8080 || exit 1
+CMD ["./neuron-agent"]
