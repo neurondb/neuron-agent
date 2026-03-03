@@ -298,7 +298,7 @@ func (n *TaskNotifier) sendEmailNotification(ctx context.Context, taskID uuid.UU
 			SET status = 'failed', error_message = $1
 			WHERE id = $2`
 		errMsg := err.Error()
-		n.queries.DB.ExecContext(ctx, updateQuery, errMsg, alertID)
+		_, _ = n.queries.DB.ExecContext(ctx, updateQuery, errMsg, alertID)
 		return
 	}
 
@@ -306,7 +306,7 @@ func (n *TaskNotifier) sendEmailNotification(ctx context.Context, taskID uuid.UU
 	updateQuery := `UPDATE neurondb_agent.task_alerts
 		SET status = 'sent', sent_at = NOW()
 		WHERE id = $1`
-	n.queries.DB.ExecContext(ctx, updateQuery, alertID)
+	_, _ = n.queries.DB.ExecContext(ctx, updateQuery, alertID)
 }
 
 /* sendWebhookNotification sends a webhook notification */
@@ -347,7 +347,7 @@ func (n *TaskNotifier) sendWebhookNotification(ctx context.Context, taskID uuid.
 			SET status = 'failed', error_message = $1
 			WHERE id = $2`
 		errMsg := err.Error()
-		n.queries.DB.ExecContext(ctx, updateQuery, errMsg, alertID)
+		_, _ = n.queries.DB.ExecContext(ctx, updateQuery, errMsg, alertID)
 		return
 	}
 
@@ -355,5 +355,5 @@ func (n *TaskNotifier) sendWebhookNotification(ctx context.Context, taskID uuid.
 	updateQuery := `UPDATE neurondb_agent.task_alerts
 		SET status = 'sent', sent_at = NOW()
 		WHERE id = $1`
-	n.queries.DB.ExecContext(ctx, updateQuery, alertID)
+	_, _ = n.queries.DB.ExecContext(ctx, updateQuery, alertID)
 }

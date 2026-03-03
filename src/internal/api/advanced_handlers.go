@@ -628,7 +628,7 @@ func (h *Handlers) GetRetrievalStats(w http.ResponseWriter, r *http.Request) {
 	/* Get days parameter */
 	days := 30
 	if d := r.URL.Query().Get("days"); d != "" {
-		fmt.Sscanf(d, "%d", &days)
+		_, _ = fmt.Sscanf(d, "%d", &days)
 		if days < 1 {
 			days = 1
 		}

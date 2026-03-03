@@ -169,5 +169,5 @@ func (v *VerifierWorker) markFailed(ctx context.Context, queueID uuid.UUID) {
 	query := `UPDATE neurondb_agent.verification_queue
 		SET status = 'failed'
 		WHERE id = $1`
-	v.queries.GetDB().ExecContext(ctx, query, queueID)
+	_, _ = v.queries.GetDB().ExecContext(ctx, query, queueID)
 }

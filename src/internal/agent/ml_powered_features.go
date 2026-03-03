@@ -82,7 +82,7 @@ func (m *MLPoweredFeatures) MLPoweredMemory(ctx context.Context, agentID uuid.UU
 	if err != nil {
 		return nil, fmt.Errorf("ML-powered memory failed: table_creation_error=true, error=%w", err)
 	}
-	defer m.db.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", qTable))
+	defer func() { _, _ = m.db.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", qTable)) }()
 
 	/* Insert embeddings */
 	for _, embedding := range memoryEmbeddings {
@@ -172,7 +172,7 @@ func (m *MLPoweredFeatures) AnomalyDetection(ctx context.Context, agentID uuid.U
 	if err != nil {
 		return nil, fmt.Errorf("anomaly detection failed: table_creation_error=true, error=%w", err)
 	}
-	defer m.db.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", qTable))
+	defer func() { _, _ = m.db.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", qTable)) }()
 
 	/* Insert behavior data */
 	for _, metric := range behaviorData {

@@ -271,7 +271,7 @@ func (m *RetrievalLearningManager) GetDecisionCache(ctx context.Context, agentID
 
 	/* Parse source scores */
 	if len(sourceScoresJSON) > 0 {
-		json.Unmarshal(sourceScoresJSON, &decision.SourceScores)
+		_ = json.Unmarshal(sourceScoresJSON, &decision.SourceScores)
 	}
 
 	return &decision, nil

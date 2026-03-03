@@ -187,7 +187,7 @@ func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}).Methods(http.MethodGet)
 	r.Handle("/metrics", metrics.Handler()).Methods(http.MethodGet)
 

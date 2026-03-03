@@ -320,7 +320,7 @@ Provide a single summary that captures the essential information from all memori
 						SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{compressed}', 'true'::jsonb),
 						    updated_at = NOW()
 						WHERE id = $1`
-					mc.queries.DB.ExecContext(ctx, updateQuery, row.ID)
+					_, _ = mc.queries.DB.ExecContext(ctx, updateQuery, row.ID)
 					compressed++
 				}
 				continue
@@ -339,10 +339,10 @@ Provide a single summary that captures the essential information from all memori
 				
 				/* Store summary in first memory, reference in others */
 				if idx == 0 {
-					mc.queries.DB.ExecContext(ctx, updateQuery, memoryID, fmt.Sprintf(`"%s"`, summary))
+					_, _ = mc.queries.DB.ExecContext(ctx, updateQuery, memoryID, fmt.Sprintf(`"%s"`, summary))
 				} else {
 					/* Reference the first memory's summary */
-					mc.queries.DB.ExecContext(ctx, updateQuery, memoryID, fmt.Sprintf(`"See memory %s"`, memoryIDs[0].String()[:8]))
+					_, _ = mc.queries.DB.ExecContext(ctx, updateQuery, memoryID, fmt.Sprintf(`"See memory %s"`, memoryIDs[0].String()[:8]))
 				}
 				compressed++
 			}
@@ -353,7 +353,7 @@ Provide a single summary that captures the essential information from all memori
 					SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{compressed}', 'true'::jsonb),
 					    updated_at = NOW()
 					WHERE id = $1`
-				mc.queries.DB.ExecContext(ctx, updateQuery, row.ID)
+				_, _ = mc.queries.DB.ExecContext(ctx, updateQuery, row.ID)
 				compressed++
 			}
 		}

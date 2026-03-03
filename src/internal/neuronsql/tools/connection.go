@@ -84,7 +84,7 @@ func (c *SafeConnection) RunReadOnly(ctx context.Context, requestID string, fn f
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	appName := "NeuronSQL"
 	if requestID != "" {

@@ -207,7 +207,7 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 
 	/* Log user message to event stream */
 	if r.eventStream != nil {
-		r.eventStream.LogEvent(ctx, sessionID, "user_message", "user", userMessage, map[string]interface{}{})
+		_, _ = r.eventStream.LogEvent(ctx, sessionID, "user_message", "user", userMessage, map[string]interface{}{})
 	}
 
 	/* Step 1: Load agent and session */
@@ -373,7 +373,7 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 
 		/* Log agent action to event stream */
 		if r.eventStream != nil {
-			r.eventStream.LogEvent(ctx, sessionID, "agent_action", agent.ID.String(), fmt.Sprintf("Executing %d tool calls", len(llmResponse.ToolCalls)), map[string]interface{}{
+			_, _ = r.eventStream.LogEvent(ctx, sessionID, "agent_action", agent.ID.String(), fmt.Sprintf("Executing %d tool calls", len(llmResponse.ToolCalls)), map[string]interface{}{
 				"tool_count": len(llmResponse.ToolCalls),
 			})
 		}
@@ -425,7 +425,7 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 
 	/* Log agent response to event stream */
 	if r.eventStream != nil {
-		r.eventStream.LogEvent(ctx, sessionID, "agent_response", agent.ID.String(), state.FinalAnswer, map[string]interface{}{
+		_, _ = r.eventStream.LogEvent(ctx, sessionID, "agent_response", agent.ID.String(), state.FinalAnswer, map[string]interface{}{
 			"tokens_used": state.TokensUsed,
 		})
 	}
@@ -543,7 +543,7 @@ func (r *Runtime) executeTools(ctx context.Context, agent *db.Agent, toolCalls [
 	/* Log tool execution start to event stream */
 	if r.eventStream != nil {
 		for _, call := range toolCalls {
-			r.eventStream.LogEvent(ctx, sessionID, "tool_execution", call.Name, fmt.Sprintf("Executing tool: %s", call.Name), map[string]interface{}{
+			_, _ = r.eventStream.LogEvent(ctx, sessionID, "tool_execution", call.Name, fmt.Sprintf("Executing tool: %s", call.Name), map[string]interface{}{
 				"tool_name": call.Name,
 				"tool_id":   call.ID,
 			})
@@ -1000,7 +1000,7 @@ func (r *Runtime) ExecuteStream(ctx context.Context, sessionID uuid.UUID, userMe
 
 	/* Log user message to event stream */
 	if r.eventStream != nil {
-		r.eventStream.LogEvent(ctx, sessionID, "user_message", "user", userMessage, map[string]interface{}{})
+		_, _ = r.eventStream.LogEvent(ctx, sessionID, "user_message", "user", userMessage, map[string]interface{}{})
 	}
 
 	/* Step 1: Load agent and session */

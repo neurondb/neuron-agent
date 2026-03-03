@@ -61,7 +61,7 @@ func (h *SQLLLMHandlers) GenerateSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ExplainSQL handles SQL explanation requests
@@ -96,7 +96,7 @@ func (h *SQLLLMHandlers) ExplainSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // OptimizeSQL handles SQL optimization requests
@@ -129,7 +129,7 @@ func (h *SQLLLMHandlers) OptimizeSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // DebugSQL handles SQL debugging requests
@@ -166,7 +166,7 @@ func (h *SQLLLMHandlers) DebugSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // TranslateSQL handles SQL translation requests
@@ -198,7 +198,7 @@ func (h *SQLLLMHandlers) TranslateSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ListModels handles listing available models
@@ -214,7 +214,7 @@ func (h *SQLLLMHandlers) ListModels(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"models": models,
 	})
 }

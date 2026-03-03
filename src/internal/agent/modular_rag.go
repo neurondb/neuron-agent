@@ -104,11 +104,11 @@ func NewModuleRegistry() *ModuleRegistry {
 	}
 	
 	/* Register built-in modules */
-	registry.Register(NewVectorRetrievalModule())
-	registry.Register(NewHybridRetrievalModule())
-	registry.Register(NewRerankingModule())
-	registry.Register(NewGenerationModule())
-	registry.Register(NewFilterModule())
+	_ = registry.Register(NewVectorRetrievalModule())
+	_ = registry.Register(NewHybridRetrievalModule())
+	_ = registry.Register(NewRerankingModule())
+	_ = registry.Register(NewGenerationModule())
+	_ = registry.Register(NewFilterModule())
 	
 	return registry
 }

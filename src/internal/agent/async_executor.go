@@ -148,10 +148,10 @@ func (e *AsyncTaskExecutor) GetTaskStatus(ctx context.Context, taskID uuid.UUID)
 
 	/* Parse JSON fields */
 	if len(inputJSON) > 0 {
-		json.Unmarshal(inputJSON, &task.Input)
+		_ = json.Unmarshal(inputJSON, &task.Input)
 	}
 	if len(resultJSON) > 0 {
-		json.Unmarshal(resultJSON, &task.Result)
+		_ = json.Unmarshal(resultJSON, &task.Result)
 	}
 	task.ErrorMsg = errorMsg
 
@@ -237,10 +237,10 @@ func (e *AsyncTaskExecutor) ListTasks(ctx context.Context, sessionID, agentID *u
 
 		/* Parse JSON fields */
 		if len(inputJSON) > 0 {
-			json.Unmarshal(inputJSON, &task.Input)
+			_ = json.Unmarshal(inputJSON, &task.Input)
 		}
 		if len(resultJSON) > 0 {
-			json.Unmarshal(resultJSON, &task.Result)
+			_ = json.Unmarshal(resultJSON, &task.Result)
 		}
 		task.ErrorMsg = errorMsg
 
@@ -310,9 +310,9 @@ func (e *AsyncTaskExecutor) executeTaskInBackground(ctx context.Context, task *A
 	/* Send completion notification */
 	if e.notifier != nil {
 		if status == "completed" {
-			e.notifier.SendCompletionAlert(ctx, task.ID)
+			_ = e.notifier.SendCompletionAlert(ctx, task.ID)
 		} else {
-			e.notifier.SendFailureAlert(ctx, task.ID, taskErr)
+			_ = e.notifier.SendFailureAlert(ctx, task.ID, taskErr)
 		}
 	}
 }

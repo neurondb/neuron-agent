@@ -63,7 +63,7 @@ var (
 func init() {
 	updateCmd.Flags().StringVarP(&updateConfig, "config", "c", "", "Path to agent configuration file")
 	cloneCmd.Flags().StringVarP(&cloneName, "name", "n", "", "Name for cloned agent")
-	cloneCmd.MarkFlagRequired("name")
+	_ = cloneCmd.MarkFlagRequired("name")
 }
 
 func listAgents(cmd *cobra.Command, args []string) error {

@@ -51,7 +51,7 @@ func (s *Sandbox) ApplyResourceLimits(cmd *exec.Cmd) error {
 			if err := syscall.Getrlimit(syscall.RLIMIT_AS, &rlimit); err == nil {
 				rlimit.Cur = uint64(s.maxMemory)
 				rlimit.Max = uint64(s.maxMemory)
-				syscall.Setrlimit(syscall.RLIMIT_AS, &rlimit)
+				_ = syscall.Setrlimit(syscall.RLIMIT_AS, &rlimit)
 			}
 		}
 
@@ -63,7 +63,7 @@ func (s *Sandbox) ApplyResourceLimits(cmd *exec.Cmd) error {
 				cpuSeconds := uint64(s.maxCPU * 60) /* Allow maxCPU minutes */
 				rlimit.Cur = cpuSeconds
 				rlimit.Max = cpuSeconds
-				syscall.Setrlimit(syscall.RLIMIT_CPU, &rlimit)
+				_ = syscall.Setrlimit(syscall.RLIMIT_CPU, &rlimit)
 			}
 		}
 

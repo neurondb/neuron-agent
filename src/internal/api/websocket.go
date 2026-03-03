@@ -176,10 +176,10 @@ func HandleWebSocket(runtime *agent.Runtime, keyManager *auth.APIKeyManager, cfg
 		}
 
 		/* Set connection parameters */
-		conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 		conn.SetReadLimit(maxMessageSize)
 		conn.SetPongHandler(func(string) error {
-			conn.SetReadDeadline(time.Now().Add(pongWait))
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 			return nil
 		})
 
@@ -262,7 +262,7 @@ func (s *connectionState) pingLoop() {
 				s.mu.Unlock()
 				return
 			}
-			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				s.mu.Unlock()
 				return
@@ -323,7 +323,7 @@ func (s *connectionState) handleMessages(runtime *agent.Runtime, logCtx context.
 					return context.Canceled
 				}
 
-				s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				_ = s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := s.conn.WriteJSON(map[string]interface{}{
 					"type":    eventType,
 					"content": chunk,
@@ -355,7 +355,7 @@ func (s *connectionState) handleMessages(runtime *agent.Runtime, logCtx context.
 
 			s.mu.Lock()
 			if !s.closed {
-				s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				_ = s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := s.conn.WriteJSON(response); err != nil {
 					s.mu.Unlock()
 					metrics.WarnWithContext(logCtx, "Failed to send final response", map[string]interface{}{
@@ -382,7 +382,7 @@ func (s *connectionState) sendError(errorMsg string) {
 	}
 
 	/* Ignore write errors when sending error messages - connection may be closing */
-	s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	_ = s.conn.WriteJSON(map[string]interface{}{
 		"type":  "error",
 		"error": errorMsg,
@@ -403,7 +403,7 @@ func (s *connectionState) close() {
 
 	/* Send close message */
 	/* Ignore errors during connection cleanup - connection may already be closed */
-	s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	_ = s.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 
 	/* Close connection */

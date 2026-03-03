@@ -42,7 +42,7 @@ func main() {
 	datasetVersion := os.Args[2]
 	limit := 100
 	if len(os.Args) > 3 {
-		fmt.Sscanf(os.Args[3], "%d", &limit)
+		_, _ = fmt.Sscanf(os.Args[3], "%d", &limit)
 	}
 
 	agentID, err := uuid.Parse(agentIDStr)
@@ -60,7 +60,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to load configuration from '%s': %v. Using default configuration.\n", configPath, err)
 		}
 	} else {
-		config.LoadFromEnv(cfg)
+		_ = config.LoadFromEnv(cfg)
 	}
 
 	/* Connect to database */

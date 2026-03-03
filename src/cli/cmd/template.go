@@ -65,7 +65,7 @@ var deployName string
 
 func init() {
 	templateDeployCmd.Flags().StringVarP(&deployName, "name", "n", "", "Agent name (default: template-name-instance)")
-	templateDeployCmd.MarkFlagRequired("name")
+	_ = templateDeployCmd.MarkFlagRequired("name")
 
 	templateCmd.AddCommand(templateListCmd)
 	templateCmd.AddCommand(templateShowCmd)
@@ -193,7 +193,7 @@ func saveTemplate(cmd *cobra.Command, args []string) error {
 
 	fmt.Print("Template name: ")
 	var templateName string
-	fmt.Scanln(&templateName)
+	_, _ = fmt.Scanln(&templateName)
 
 	if templateName == "" {
 		return fmt.Errorf("template name is required")

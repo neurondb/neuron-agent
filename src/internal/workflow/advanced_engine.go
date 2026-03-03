@@ -633,7 +633,7 @@ func (awe *AdvancedWorkflowEngine) substituteParameters(config map[string]interf
 	}
 
 	var result map[string]interface{}
-	json.Unmarshal([]byte(configStr), &result)
+	_ = json.Unmarshal([]byte(configStr), &result)
 	return result
 }
 

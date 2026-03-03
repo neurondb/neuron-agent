@@ -37,10 +37,10 @@ func (h *Handlers) ListApprovalRequests(w http.ResponseWriter, r *http.Request) 
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		fmt.Sscanf(l, "%d", &limit)
+		_, _ = fmt.Sscanf(l, "%d", &limit)
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		fmt.Sscanf(o, "%d", &offset)
+		_, _ = fmt.Sscanf(o, "%d", &offset)
 	}
 
 	approvalMgr := humanloop.NewApprovalManager(h.queries.DB)
@@ -244,10 +244,10 @@ func (h *Handlers) ListFeedback(w http.ResponseWriter, r *http.Request) {
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		fmt.Sscanf(l, "%d", &limit)
+		_, _ = fmt.Sscanf(l, "%d", &limit)
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		fmt.Sscanf(o, "%d", &offset)
+		_, _ = fmt.Sscanf(o, "%d", &offset)
 	}
 
 	feedbackMgr := humanloop.NewFeedbackManager(h.queries.DB)

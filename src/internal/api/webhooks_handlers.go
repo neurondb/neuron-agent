@@ -215,10 +215,10 @@ func (h *Handlers) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request)
 	limit := 50
 	offset := 0
 	if l := r.URL.Query().Get("limit"); l != "" {
-		fmt.Sscanf(l, "%d", &limit)
+		_, _ = fmt.Sscanf(l, "%d", &limit)
 	}
 	if o := r.URL.Query().Get("offset"); o != "" {
-		fmt.Sscanf(o, "%d", &offset)
+		_, _ = fmt.Sscanf(o, "%d", &offset)
 	}
 
 	deliveries, err := h.queries.ListWebhookDeliveries(r.Context(), id, limit, offset)

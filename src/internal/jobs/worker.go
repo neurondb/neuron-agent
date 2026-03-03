@@ -134,7 +134,7 @@ func (w *Worker) processJob(ctx context.Context, job *db.Job) {
 		_ = w.queue.UpdateJob(ctx, job.ID, "queued", nil, nil, job.RetryCount, nil)
 		return
 	}
-	w.queue.UpdateJob(ctx, job.ID, status, result, errorMsg, retryCount, completedAtVal)
+	_ = w.queue.UpdateJob(ctx, job.ID, status, result, errorMsg, retryCount, completedAtVal)
 }
 
 func (w *Worker) Stop() {

@@ -225,7 +225,7 @@ func (dc *DistributedCache) Invalidate(ctx context.Context, key string) error {
 			})
 		}
 		/* Send NOTIFY to invalidate other nodes */
-		dc.pgCache.NotifyInvalidation(ctx, key)
+		_ = dc.pgCache.NotifyInvalidation(ctx, key)
 	}
 
 	/* Invalidate L3 */

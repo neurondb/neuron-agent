@@ -88,10 +88,9 @@ func (sim *SelfImprovementManager) LearnFromExperience(ctx context.Context, agen
 			})
 			successRate := sim.calculateSuccessRate(rows)
 			avgQuality := sim.calculateAverageQuality(rows)
-			sim.updateStrategy(ctx, agentID, successRate, avgQuality)
+			_ = sim.updateStrategy(ctx, agentID, successRate, avgQuality)
 			return nil
 		}
-		/* Create table with features for ML analysis */
 		createTableQuery := fmt.Sprintf(`
 			CREATE TEMP TABLE %s (
 				id SERIAL PRIMARY KEY,
@@ -114,7 +113,7 @@ func (sim *SelfImprovementManager) LearnFromExperience(ctx context.Context, agen
 			/* Fall back to simple analysis */
 			successRate := sim.calculateSuccessRate(rows)
 			avgQuality := sim.calculateAverageQuality(rows)
-			sim.updateStrategy(ctx, agentID, successRate, avgQuality)
+			_ = sim.updateStrategy(ctx, agentID, successRate, avgQuality)
 			return nil
 		}
 
@@ -160,7 +159,7 @@ func (sim *SelfImprovementManager) LearnFromExperience(ctx context.Context, agen
 			/* Fall back to simple analysis */
 			successRate := sim.calculateSuccessRate(rows)
 			avgQuality := sim.calculateAverageQuality(rows)
-			sim.updateStrategy(ctx, agentID, successRate, avgQuality)
+			_ = sim.updateStrategy(ctx, agentID, successRate, avgQuality)
 			return nil
 		}
 
@@ -233,11 +232,11 @@ func (sim *SelfImprovementManager) LearnFromExperience(ctx context.Context, agen
 			/* Fall back to simple analysis */
 			successRate := sim.calculateSuccessRate(rows)
 			avgQuality := sim.calculateAverageQuality(rows)
-			sim.updateStrategy(ctx, agentID, successRate, avgQuality)
+			_ = sim.updateStrategy(ctx, agentID, successRate, avgQuality)
 		}
 
 		/* Clean up temp table */
-		sim.queries.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", featuresTable))
+		_, _ = sim.queries.DB.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", featuresTable))
 	} else {
 		/* Use simple analysis if ML client not available or insufficient data */
 		successRate := sim.calculateSuccessRate(rows)

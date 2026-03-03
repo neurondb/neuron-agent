@@ -62,7 +62,7 @@ func (h *NeuronSQLHandlers) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 	metrics.RecordNeuronSQLRequest("generate", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 /* Optimize handles POST /v1/neuronsql/optimize */
@@ -94,7 +94,7 @@ func (h *NeuronSQLHandlers) Optimize(w http.ResponseWriter, r *http.Request) {
 	}
 	metrics.RecordNeuronSQLRequest("optimize", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 /* Validate handles POST /v1/neuronsql/validate */
@@ -126,7 +126,7 @@ func (h *NeuronSQLHandlers) Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	metrics.RecordNeuronSQLRequest("validate", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 /* PLpgSQL handles POST /v1/neuronsql/plpgsql */
@@ -163,5 +163,5 @@ func (h *NeuronSQLHandlers) PLpgSQL(w http.ResponseWriter, r *http.Request) {
 	}
 	metrics.RecordNeuronSQLRequest("plpgsql", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }

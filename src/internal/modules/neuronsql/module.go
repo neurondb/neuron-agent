@@ -130,7 +130,7 @@ func (m *NeuronSQLModule) handleGenerate(w http.ResponseWriter, r *http.Request)
 	}
 	metrics.RecordNeuronSQLRequest("generate", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (m *NeuronSQLModule) handleOptimize(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +160,7 @@ func (m *NeuronSQLModule) handleOptimize(w http.ResponseWriter, r *http.Request)
 	}
 	metrics.RecordNeuronSQLRequest("optimize", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (m *NeuronSQLModule) handleValidate(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +190,7 @@ func (m *NeuronSQLModule) handleValidate(w http.ResponseWriter, r *http.Request)
 	}
 	metrics.RecordNeuronSQLRequest("validate", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (m *NeuronSQLModule) handlePLpgSQL(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +225,7 @@ func (m *NeuronSQLModule) handlePLpgSQL(w http.ResponseWriter, r *http.Request) 
 	}
 	metrics.RecordNeuronSQLRequest("plpgsql", "2xx", time.Since(start))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func writeJSONError(w http.ResponseWriter, code int, message, requestID string) {

@@ -238,7 +238,7 @@ func (v *VirtualFileSystem) WriteFile(ctx context.Context, agentID uuid.UUID, pa
 
 		/* Delete old S3 object if different */
 		if existing.StorageBackend == "s3" && existing.Path != path {
-			v.storage.Delete(ctx, existing.Path)
+			_ = v.storage.Delete(ctx, existing.Path)
 		}
 
 		contentBytes = nil
@@ -279,7 +279,7 @@ func (v *VirtualFileSystem) DeleteFile(ctx context.Context, agentID uuid.UUID, p
 
 	/* Delete from S3 if applicable */
 	if file.StorageBackend == "s3" && file.Path != "" {
-		v.storage.Delete(ctx, file.Path)
+		_ = v.storage.Delete(ctx, file.Path)
 	}
 
 	/* Delete file record */
@@ -396,7 +396,7 @@ func (v *VirtualFileSystem) MoveFile(ctx context.Context, agentID uuid.UUID, src
 func (v *VirtualFileSystem) compressContent(content []byte) (bool, []byte) {
 	var buf strings.Builder
 	writer := gzip.NewWriter(&buf)
-	writer.Write(content)
+	_, _ = writer.Write(content)
 	writer.Close()
 
 	compressed := []byte(buf.String())
