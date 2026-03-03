@@ -1,0 +1,33 @@
+# NeuronSQL PL/pgSQL Generate with Review – ready workflow template
+# Generate PL/pgSQL block then human review step.
+
+name: neuronsql_plpgsql_generate_with_review
+description: Generate PL/pgSQL with neuronsql.plpgsql_generate; review step for audit.
+
+dag_definition:
+  description: "PL/pgSQL generation with review gate"
+
+steps:
+  - step_name: plpgsql_generate
+    step_type: tool
+    dependencies: []
+    inputs:
+      tool_name: neuronsql.plpgsql_generate
+      args:
+        natural_language_spec: "{{workflow_inputs.spec}}"
+        schema_snapshot: "{{workflow_inputs.schema_snapshot}}"
+    retry_config:
+      max_attempts: 3
+      timeout_seconds: 120
+
+  - step_name: review
+    step_type: approval
+    dependencies: [plpgsql_generate]
+    inputs:
+      title: "Review generated PL/pgSQL"
+      description: "Approve or reject generated block"
+      payload: "{{plpgsql_generate.result}}"
+    retry_config:
+      timeout_seconds: 86400
+
+# Workflow inputs: spec, schema_snapshot

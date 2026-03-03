@@ -137,6 +137,30 @@ Retrieves cost tracking information for an agent.
 
 Creates a new conversation session with an agent.
 
+**Request Body:**
+```json
+{
+  "agent_id": "agent_research_001",
+  "external_user_id": "user123",
+  "metadata": {
+    "project": "research",
+    "source": "web"
+  }
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "id": "session_abc123",
+  "agent_id": "agent_research_001",
+  "external_user_id": "user123",
+  "metadata": {},
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-01T00:00:00Z"
+}
+```
+
 #### Get Session
 `GET /api/v1/sessions/{id}`
 
@@ -155,19 +179,53 @@ Deletes a session and all associated messages.
 #### List Sessions
 `GET /api/v1/agents/{agent_id}/sessions`
 
-Lists all sessions for an agent.
+Lists all sessions for an agent. Supports `limit` and `offset` for pagination.
 
 ### Messages
 
 #### Send Message
 `POST /api/v1/sessions/{session_id}/messages`
 
-Sends a message to an agent in a session.
+Sends a message to an agent in a session. The agent processes the message (loads context, may call tools, updates memory) and returns a response.
+
+**Request Body:**
+```json
+{
+  "content": "Find documents about machine learning",
+  "role": "user",
+  "stream": false,
+  "metadata": {
+    "priority": "high"
+  }
+}
+```
+
+- `content` (required): Message text.
+- `role`: Usually `"user"`; can be omitted (defaults to user).
+- `stream`: If `true`, use WebSocket or streaming response where supported.
+- `metadata`: Optional key-value metadata.
+
+**Response:** `201 Created` (or streaming)
+```json
+{
+  "id": "msg_xyz789",
+  "session_id": "session_abc123",
+  "role": "assistant",
+  "content": "I found the following documents about machine learning...",
+  "metadata": {
+    "tool_calls": [],
+    "tokens_used": 150
+  },
+  "created_at": "2025-01-01T00:01:00Z"
+}
+```
+
+For streaming, the response may be chunked or delivered via WebSocket (see [WebSocket](#websocket) below).
 
 #### Get Messages
 `GET /api/v1/sessions/{session_id}/messages`
 
-Retrieves message history for a session.
+Retrieves message history for a session. Supports `limit` and `offset`.
 
 #### Get Message
 `GET /api/v1/messages/{id}`
@@ -243,9 +301,7 @@ Deletes a memory chunk.
 
 Generates a summary of memory chunks.
 
-### Plans, Reflections, Budgets, Webhooks, Human-in-the-Loop, Collaboration Workspaces, Async Tasks, Alert Preferences, Batch Operations, Analytics
-
-See [api.md](api.md) for full endpoint documentation.
+### Plans, Reflections, Budgets, Webhooks, Human-in-the-Loop, Collaboration Workspaces, Async Tasks, Alert Preferences, Batch Operations, Analytics, and more are documented in [api.md](api.md).
 
 ### WebSocket
 
@@ -253,6 +309,36 @@ See [api.md](api.md) for full endpoint documentation.
 `GET /ws?session_id={session_id}`
 
 Establishes a WebSocket connection for streaming agent responses.
+
+**Authentication:** Pass the API key via query parameter `api_key={key}` or via the `Authorization: Bearer {key}` header when establishing the connection.
+
+**Query parameters:**
+- `session_id` (required): ID of an existing session. The session must belong to an agent and exist before connecting.
+
+**Message format (client → server):**
+```json
+{
+  "content": "Your message here"
+}
+```
+
+**Message format (server → client):** Streamed events may include:
+- `type: "chunk"` — Incremental content (e.g. token stream).
+- `type: "response"` — Full or final response with optional `tool_calls`, `tool_results`, `tokens_used`, `complete: true`.
+- `type: "error"` — Error message.
+
+**Features:** Ping/pong keepalive, message queue for concurrent requests, graceful error handling. See [api.md](api.md) for full WebSocket message schema.
+
+**Example (JavaScript):**
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws?session_id=' + sessionId + '&api_key=' + apiKey);
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  if (data.type === 'chunk') process.stdout.write(data.content);
+  if (data.type === 'response' && data.complete) console.log('\nDone.');
+};
+ws.send(JSON.stringify({ content: 'Hello, agent!' }));
+```
 
 ## Error Responses
 

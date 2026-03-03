@@ -1,0 +1,57 @@
+# NeuronAgent configuration – environment variable schema
+
+Environment variables override config file values. Load order: config file (if CONFIG_PATH set) -> LoadFromEnv -> ApplyProfile (if CONFIG_PROFILE or ENV set) -> ValidateConfig.
+
+## Server
+- SERVER_HOST          – Bind host (default from file: 0.0.0.0)
+- SERVER_PORT          – Bind port (default 8080)
+- SERVER_READ_TIMEOUT  – Read timeout duration (e.g. 30s)
+- SERVER_WRITE_TIMEOUT – Write timeout duration (e.g. 30s)
+
+## Database
+- DB_HOST              – PostgreSQL host (required in production)
+- DB_PORT              – PostgreSQL port (default 5432)
+- DB_NAME              – Database name (required)
+- DB_USER              – Database user (required)
+- DB_PASSWORD          – Database password (required; secret, redacted in logs)
+- DB_MAX_OPEN_CONNS    – Max open connections in pool
+- DB_MAX_IDLE_CONNS    – Max idle connections
+- DB_CONN_MAX_LIFETIME – Connection max lifetime duration
+- DB_CONN_MAX_IDLE_TIME – Connection max idle time
+
+## Auth
+- AUTH_API_KEY_HEADER  – Header name for API key (default Authorization)
+- CORS_ALLOWED_ORIGINS – Comma-separated CORS origins
+- WEBSOCKET_ALLOWED_ORIGINS – Comma-separated WebSocket origins (defaults to CORS if set)
+
+## Logging
+- LOG_LEVEL            – Level: debug, info, warn, error
+- LOG_FORMAT           – Format: json, console
+
+## Profile and validation
+- CONFIG_PROFILE       – Profile: dev, development, staging, prod, production (applies profile defaults)
+- ENV                  – Alias for CONFIG_PROFILE if CONFIG_PROFILE unset
+- CONFIG_REJECT_UNKNOWN_FIELDS – If true or 1, reject request bodies with unknown fields (schema validation)
+
+## Distributed / RPC
+- DISTRIBUTED_ENABLED  – Set to true to enable distributed mode
+- NODE_ADDRESS         – Node address
+- NODE_PORT            – Node port
+- RPC_TIMEOUT         – RPC timeout duration
+- RPC_SECRET           – Shared secret (redacted in logs)
+- RPC_API_KEY         – API key for RPC (redacted)
+- RPC_USE_TLS         – Set to true for HTTPS RPC
+
+## Cache
+- DISTRIBUTED_CACHE_ENABLED – Set to true to enable cache
+- CACHE_TTL           – Cache TTL duration
+- CACHE_SYNC_INTERVAL – Sync interval duration
+
+## Multimodal
+- OCR_PROVIDER        – OCR provider name
+
+## Modules
+- MODULE_NEURONSQL_ENABLED – Set to true or 1 to enable NeuronSQL module
+
+## Config file
+- CONFIG_PATH         – Path to YAML config file; if set, file is loaded then env overrides applied

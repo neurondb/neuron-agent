@@ -451,7 +451,7 @@ ws.onclose = (e) => console.log('Closed:', e.code, e.reason);
 
 If you continue to experience issues:
 
-1. **Check Documentation**: Review [API Documentation](API.md) and [Architecture Guide](architecture.md)
+1. **Check Documentation**: Review [API Documentation](api.md) and [Architecture Guide](architecture.md)
 2. **Review Logs**: Collect relevant log entries
 3. **Gather Information**:
    - Server version

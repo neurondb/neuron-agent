@@ -1,0 +1,39 @@
+# NeuronSQL Generate and Validate – ready workflow template
+# Create workflow via API, then add steps (tool steps with retries and idempotency).
+# See README in this directory for loading instructions.
+
+name: neuronsql_generate_and_validate
+description: Generate SELECT with NeuronSQL then validate against schema; retries and idempotency.
+
+# API equivalent: POST /api/v1/workflows with dag_definition below, then POST steps.
+dag_definition:
+  description: "Generate SELECT with neuronsql.generate_select, validate with neuronsql.validate_sql"
+
+# Steps to create via POST /api/v1/workflows/{id}/steps (in order; dependencies by step_name)
+steps:
+  - step_name: generate
+    step_type: tool
+    dependencies: []
+    inputs:
+      tool_name: neuronsql.generate_select
+      args:
+        natural_language_query: "{{workflow_inputs.query}}"
+        schema_snapshot: "{{workflow_inputs.schema_snapshot}}"
+    retry_config:
+      max_attempts: 3
+      timeout_seconds: 120
+    idempotency_key: "neuronsql_gen_{{workflow_inputs.idempotency_suffix}}"
+
+  - step_name: validate
+    step_type: tool
+    dependencies: [generate]
+    inputs:
+      tool_name: neuronsql.validate_sql
+      args:
+        sql: "{{generate.result.sql}}"
+        schema_snapshot: "{{workflow_inputs.schema_snapshot}}"
+    retry_config:
+      max_attempts: 2
+      timeout_seconds: 60
+
+# Workflow inputs expected: query, schema_snapshot, idempotency_suffix (optional)

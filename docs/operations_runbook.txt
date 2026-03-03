@@ -1,0 +1,44 @@
+NeuronAgent Operations Runbook
+==============================
+
+1. Startup
+----------
+- Ensure PostgreSQL is up and migrations applied (bin/sql/*.sql or migrate script).
+- Set DB_* and optional CONFIG_PATH. Start: ./bin/neuron-agent or via Docker/Helm.
+- Health: GET /health should return 200. Metrics: GET /metrics.
+
+2. Shutdown
+-----------
+- SIGTERM/SIGINT: server sets SetKeepAlivesEnabled(false), flushes audit, stops modules, shuts down HTTP server, cleans up registry.
+- Allow up to 10s for graceful shutdown.
+
+3. Upgrade
+----------
+- Backward-compatible schema: new columns/tables are additive. Run new SQL migrations (IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
+- Deploy new binary; restart. No column drops or type changes in plan.
+
+4. Rollback
+-----------
+- Redeploy previous image/binary. New binary ignores unknown columns/tables. Ensure DB migrations are idempotent so re-running old code is safe.
+
+5. Monitoring
+--------------
+- Prometheus: scrape /metrics. Key metrics: http_requests_total, agent_executions_total, tool_executions_total, policy_blocks_total, queue_depth, cost_per_workspace.
+- Logs: structured JSON with request_id, org_id, agent_id, tool_name, status, latency_ms, cost.
+- Alerts: suggest on 5xx rate, latency p99, circuit breaker open, queue depth.
+
+6. Audit Retention
+------------------
+- Dedicated tables: audit_events, policy_decisions, tool_invocations, workflow_executions_audit, approval_actions.
+- Partitioning by month on timestamp recommended for large volumes.
+- Retention: manage via scheduled jobs or external process; compliance profile may dictate retention (e.g. 90 days GDPR).
+
+7. Backup
+---------
+- Back up PostgreSQL (agents, sessions, tools, workflows, audit tables). Application has no built-in backup; use pg_dump or cluster backup.
+
+8. Troubleshooting
+------------------
+- 503/circuit open: tool dependency failing; check target service and circuit breaker config.
+- Policy blocks: check policy_decisions / audit for reason_code; adjust blocklist if needed.
+- High memory: check memory chunks per agent; use memory/forget or consolidation APIs.

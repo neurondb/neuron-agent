@@ -1,0 +1,177 @@
+NeuronAgent Product Gap Report
+==============================
+Generated from deep scan of neuron-agent repository. Target: enterprise-grade production readiness and NeuronSQL as first-class subsystem.
+
+-------------------------------------------------------------------------------
+1. CURRENT STRENGTHS
+-------------------------------------------------------------------------------
+
+Module system
+  - core.App with Registry; Register -> Resolve -> InitAll -> StartAll/StopAll.
+  - Module contract: Name, Version, Dependencies, Init, Start, Stop, Health.
+  - AppContext: DB, Queries, Config, RegisterRoutes, RegisterToolHandler, etc.
+  - NeuronSQL loaded as optional module; routes at /api/v1/neuronsql/*.
+
+NeuronSQL policy and SafeConnection
+  - policy/engine.go: PolicyEngineImpl with classifier, sanitizer, rules.
+  - policy/rules.go: Blocklist (DROP, TRUNCATE, ALTER SYSTEM, GRANT, REVOKE, CREATE FUNCTION, DO $$, COPY PROGRAM, dblink, pg_read_file, etc.).
+  - tools/connection.go: SafeConnection with read-only transaction, statement_timeout, lock_timeout, idle_in_tx.
+
+Audit
+  - neurondb_agent.audit_log table (timestamp, principal_id, api_key_id, agent_id, session_id, action, resource_type, resource_id, inputs_hash, outputs_hash, inputs, outputs, metadata).
+  - auth.AuditLogger: LogToolCall, LogSQLStatement, LogAgentExecution.
+  - Tool execution logs to audit asynchronously (bounded concurrency).
+
+Workflow engine
+  - DAG execution with step types: agent, tool, approval, http, sql, conditional.
+  - IdempotencyKey support; GetWorkflowStepExecutionByIdempotencyKey for step replay.
+
+Read-only SQL tool
+  - internal/tools/sql_tool.go uses validation.ValidateSQLQuery with AllowReadOnly.
+  - Data permission checker and audit for SQL execution.
+
+Eval suite and fixtures
+  - internal/neuronsql/eval/suite.go: Task, Suite, Result, Pass() fail rules.
+  - tests/fixtures/neuronsql: saas_basic, northwind_like, analytics_timeseries (DDL, seed, prompts).
+
+Prometheus metrics
+  - HTTP, agent, LLM, memory, tool, workflow counters/histograms.
+  - NeuronSQL request metrics by operation and status.
+
+Auth and rate limiting
+  - APIKeyManager (validate by prefix/hash), PrincipalManager, RateLimiter per key.
+  - AuthMiddleware enforces Bearer/ApiKey; rate limit returns 429.
+
+-------------------------------------------------------------------------------
+2. GAPS FOR ENTERPRISE USE
+-------------------------------------------------------------------------------
+
+API and contracts
+  - No explicit API version in response headers or Accept negotiation.
+  - No request/response schema validation; no reject-unknown-fields option.
+  - Error responses not standardized: missing request_id, error_code, retryable, docs_url in all responses.
+
+Configuration
+  - No formal env var schema documentation.
+  - No secret redaction in logs or config dump.
+  - No config dump endpoint; no dev/staging/prod profiles.
+
+RBAC
+  - No tool-level permissions (allow/deny per tool or namespace).
+  - No workspace-level policies; no per-agent tool allowlist.
+  - No approval-gate-specific roles.
+
+Audit
+  - Workflow runs, approvals, and policy_blocks not recorded as distinct audit events.
+  - No retention policy or partitioning option documented or implemented.
+
+Reliability
+  - Tool-step retries not standardized with idempotency; memory promotion and verification jobs may lack idempotency keys.
+  - No per-step time budget in workflow execution.
+  - Graceful shutdown does not drain in-flight requests or flush audit queue.
+
+Observability
+  - No standardized structured log fields (workspace_id, agent_id, session_id, tool_name, workflow_id, latency_ms, status) across all log lines.
+  - No trace spans for tool chains or workflow DAG steps.
+  - No diagnostics endpoint (e.g. /admin/diagnostics) for DB, modules, queue depth.
+
+Security
+  - No strict validation for tool schema args, SQL length/charset, HTTP tool URLs, VFS paths.
+  - Shell/browser allowlist not fully enforced or documented.
+  - No per-workspace rate limit or burst control.
+
+SDK and DX
+  - SDKs do not track API version or expose retry/streaming helpers.
+  - No minimal examples/python and examples/typescript runnable against docker-compose.
+
+NeuronSQL
+  - Only neuronsql_generate and neuronsql_optimize registered in module; schema_snapshot, validate_sql, explain_json, generate_select, optimize_select, plpgsql_generate not all exposed under neuronsql.* namespace.
+  - RegisterNeuronSQLTools (7 tools) not called from module, so those tools not in main app.
+  - No single-statement/row/size enforcement in one dedicated tool runner.
+  - PolicyDecision lacks reason_code, reason_text, blocked_tokens.
+
+Claw and deployment
+  - No /claw/v1 routes (tools/list, tools/run, health).
+  - No Helm chart; docker-compose not including pg_stat_statements for full demo.
+
+-------------------------------------------------------------------------------
+3. PRIORITY RANKED BACKLOG
+-------------------------------------------------------------------------------
+
+P0 (Critical for enterprise and NeuronSQL v1)
+  - Stable error format: request_id, error_code, message, details, retryable, docs_url.
+  - Config: env schema doc, secret redaction, config dump endpoint (admin RBAC), profiles (dev/staging/prod).
+  - Audit: events for workflow_run, approval, policy_block; retention policy and partitioning option doc.
+  - NeuronSQL: expose all safe tools under neuronsql.* namespace; strict tool runner (single statement, row/size limits, policy check).
+  - PolicyDecision: add reason_code, reason_text, blocked_tokens; integrate into runner and audit.
+
+P1 (High)
+  - API versioning (header / Accept) and OpenAPI fix/validation.
+  - RBAC: tool-level, workspace-level, per-agent allowlist, approval-gate roles.
+  - Idempotency and time budgets: tool retries with idempotency; per-request and per-step time budgets.
+  - Tracing and diagnostics: spans for tool/workflow; GET /admin/diagnostics.
+  - Claw gateway: POST /claw/v1/tools/list, POST /claw/v1/tools/run, GET /claw/v1/health with RBAC, rate limit, audit.
+
+P2 (Medium)
+  - Request/response validation with CONFIG_REJECT_UNKNOWN_FIELDS.
+  - Per-workspace rate limit and burst control.
+  - SDK: API version header, typed request/response, retries with backoff, streaming helpers.
+
+P3 (Lower)
+  - Audit partitioning/retention automation (e.g. partition drop by date).
+  - Workflow compensation on failure.
+
+-------------------------------------------------------------------------------
+4. CONCRETE CHANGES PROPOSED (file paths and modules)
+-------------------------------------------------------------------------------
+
+API and errors
+  - src/internal/api/errors.go: Add ErrorResponse struct (request_id, error_code, message, details, retryable, docs_url); respondError() to always emit JSON with these fields.
+  - src/internal/api/middleware.go: Optional response header X-API-Version.
+  - docs/openapi.json or src/openapi/: Fix paths vs components; add NeuronSQL paths; CI validation.
+
+Config
+  - src/internal/config/config.go: Add Redact() or redaction tags; ConfigDump() returning non-secret fields.
+  - src/internal/config/env.go: Document all env vars (docs/config_env_schema.txt or godoc).
+  - New: CONFIG_PROFILE (dev|staging|prod), ENV; profile defaults in config or defaults.go.
+  - src/internal/api/: GET /admin/config handler (admin RBAC).
+
+Audit
+  - src/internal/auth/audit.go: LogWorkflowRun, LogApproval, LogPolicyBlock; extend action/resource_type.
+  - sql/ or migrations/: Optional audit_log_partitioned table or retention policy doc; migration for new action types if needed.
+
+RBAC
+  - src/internal/db/: Tables or columns for tool_allowlist per agent, workspace policies, approval roles.
+  - src/internal/auth/: Check tool permission before registry.ExecuteTool; check approval role in workflow executeApprovalStep.
+
+Reliability
+  - src/internal/workflow/engine.go: Per-step context deadline (time budget); ensure tool step retries use step IdempotencyKey.
+  - src/internal/jobs/ or memory/verification: Idempotency keys for promotion and verification jobs.
+  - src/cmd/agent-server/main.go: Graceful shutdown: stop accepting, wait in-flight with timeout, flush audit, then StopAll, Shutdown, Cleanup.
+
+Observability
+  - src/internal/metrics/: Standardize log fields (request_id, workspace_id, agent_id, session_id, tool_name, workflow_id, latency_ms, status).
+  - src/internal/metrics/prometheus.go: policy_blocks counter; tool latency by tool_name; workflow latency; failures by error_code.
+  - Add OpenTelemetry or similar: spans for tool chain and workflow steps.
+  - src/internal/api/: GET /admin/diagnostics (admin RBAC): DB health, modules, version.
+
+NeuronSQL
+  - src/internal/modules/neuronsql/module.go: Register neuronsql.schema_snapshot, neuronsql.validate_sql, neuronsql.explain_json, neuronsql.generate_select, neuronsql.optimize_select, neuronsql.plpgsql_generate (map to existing tools or new wrappers).
+  - src/internal/neuronsql/tools/runner.go: New strict SQL runner: single statement, statement_timeout, lock_timeout, row limit, result size limit, policy check before run; audit policy_block on reject.
+  - src/pkg/neuronsql/interfaces.go: PolicyDecision: add ReasonCode, ReasonText, BlockedTokens.
+  - src/internal/neuronsql/policy/engine.go: Populate reason_code, reason_text, blocked_tokens in Check().
+  - src/internal/neuronsql/tools/: Use runner from all tools that execute SQL; validate_sql: validate against schema snapshot (relations/columns exist); generate_select: repair loop up to 3 iterations with citations.
+
+Claw
+  - src/internal/api/claw_handlers.go: Handlers for POST /claw/v1/tools/list, POST /claw/v1/tools/run, GET /claw/v1/health.
+  - src/cmd/agent-server/main.go: Mount /claw/v1 routes with auth, RBAC (neuronsql.* only), rate limit, audit.
+
+Deployment
+  - docker/docker-compose.neuronsql.yml: Add pg_stat_statements to Postgres; document in README.
+  - helm/: Chart.yaml, values.yaml, templates (deployment, service, probes, HPA hints).
+  - sql/migrations/: New audit event types or tables; policy/neuronsql metadata if needed.
+  - docs/release_checklist.md: Version bump, migrations, compat checks, smoke tests, rollback plan.
+
+SDK and examples
+  - src/sdks/python/, src/sdks/typescript/: API version header, typed DTOs, retry with backoff using retryable flag, WebSocket streaming helpers.
+  - examples/python/, examples/typescript/: Minimal runnable examples; README with docker-compose up and env.

@@ -1,0 +1,37 @@
+NeuronAgent Compliance Profiles
+================================
+
+Profile is set via config (compliance.profile) or env COMPLIANCE_PROFILE.
+Values: standard | gdpr | hipaa | sox
+
+1. standard
+-----------
+- Default. No extra retention or export restrictions.
+- Memory and audit use server defaults.
+
+2. gdpr
+-------
+- MemoryRetentionDays: 90
+- ExportRestricted: true
+- AuditVerbose: true
+- AnonymizePII: true
+Use for EU personal data; short retention and restricted export.
+
+3. hipaa
+--------
+- MemoryRetentionDays: 365
+- AuditVerbose: true
+- EncryptionRequired: true
+Use for health data; longer retention and encryption expectations.
+
+4. sox
+------
+- AuditVerbose: true
+- ApprovalRequiredWorkflows: true
+Use for financial controls; workflow approvals and full audit.
+
+Implementation
+--------------
+- Profiles defined in internal/compliance/profiles.go.
+- ProfileSettings getters: MemoryRetentionDaysValue(), ExportRestricted(), etc.
+- Wire into memory TTL (promotion/forget), audit verbosity, and export endpoints per profile.
