@@ -1,0 +1,39 @@
+# neuron-agent - Go API + Python tests
+# -----------------------------------------------------------------------------
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Go
+agent-server
+src/bin/
+*.exe
+*.test
+*.out
+vendor/
+go.work
+go.work.sum
+coverage.txt
+coverage.html
+coverage.xml
+
+# Python (tests)
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs and env
+*.log
+.env
+.env.local
+config.yaml

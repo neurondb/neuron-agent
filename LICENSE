@@ -1,0 +1,396 @@
+SOFTWARE LICENSE AGREEMENT
+
+NeurondB — Advanced AI Database Extension for PostgreSQL
+
+Copyright (C) 2024-2026 neurondb, Inc. All rights reserved.
+
+This Software License Agreement ("Agreement") is a legally binding contract
+between you ("Licensee," "you," or "your") and neurondb, Inc., a corporation
+("Licensor," "we," "us," or "our"). By accessing, downloading, installing,
+copying, or using the Software (as defined below) in any manner, you
+acknowledge that you have read, understood, and agree to be bound by all
+terms and conditions of this Agreement. If you do not agree to these terms,
+you must immediately cease all access to and use of the Software.
+
+1. DEFINITIONS
+
+   For purposes of this Agreement, the following terms shall have the
+   meanings set forth below:
+
+   a) "Software" means the computer software program known as NeurondB,
+      including but not limited to all source code, object code, binary
+      code, executables, libraries, modules, components, documentation,
+      and any and all versions, modifications, derivatives, and copies
+      thereof, whether in whole or in part, whether modified or
+      unmodified, whether obtained from the original source or any
+      third party.
+
+   b) "Source Code" means the human-readable form of the Software,
+      including but not limited to all programming code, scripts,
+      configuration files, build files, documentation embedded in code,
+      comments, and any other human-readable representations of the
+      Software.
+
+   c) "Binary Code" means the compiled, executable, or machine-readable
+      form of the Software, including but not limited to object files,
+      executables, libraries, shared objects, dynamic link libraries,
+      and any other machine-readable representations of the Software.
+
+   d) "Commercial Use" means any use of the Software that is directly
+      or indirectly intended for or results in commercial advantage,
+      monetary gain, or business purposes, including but not limited to:
+      (i) use in connection with any revenue-generating activity;
+      (ii) use in any business, commercial, or enterprise context;
+      (iii) use to provide services to paying customers;
+      (iv) use in cloud services, software-as-a-service, platform-as-a-service,
+      or any hosted service offering;
+      (v) use to reduce costs in a commercial operation;
+      (vi) use to gain competitive advantage in any market;
+      (vii) use in any context where the Software generates revenue,
+      directly or indirectly, for you or any third party;
+      (viii) use as part of any commercial research, development, or
+      product development activities; (ix) use in any way that provides
+      commercial benefit or advantage, whether monetary or non-monetary;
+      and (x) any other use that could reasonably be construed as
+      commercial in nature.
+
+   e) "Derivative Work" means any work that is based upon, derived from,
+      incorporates, or is a modification, adaptation, translation, or
+      variation of the Software, whether such work is substantially
+      similar or significantly different, whether the Software is visible
+      or hidden in such work, and whether such work is created by you
+      or any third party.
+
+   f) "Personal Use" means use of Binary Code solely by an individual
+      for personal, non-commercial purposes on such individual's personal
+      computers and devices, excluding any use in connection with any
+      business, commercial, or enterprise activity.
+
+2. RETROACTIVE APPLICATION AND EFFECTIVE DATE
+
+   This Agreement applies retroactively and effectively to all versions
+   of the Software from the first commit in the repository history
+   (commit d6bcea1, dated December 1, 2025, hereinafter "First Commit"),
+   regardless of when this Agreement was created, modified, or last updated.
+   The restrictions and prohibitions contained herein apply to all code,
+   all commits, all versions, and all distributions of the Software from
+   its inception, including but not limited to the First Commit and all
+   subsequent and prior versions.
+
+   By using any version of the Software, whether obtained before or after
+   the date of this Agreement or any modification thereto, you acknowledge
+   and agree that the terms and conditions of this Agreement have always
+   applied to the Software from the first line of code written, and that
+   no version of the Software, no commit, and no code, regardless of when
+   it was created, distributed, or obtained, is exempt from the restrictions
+   set forth herein.
+
+3. GRANT OF LIMITED LICENSE
+
+   Subject to your strict compliance with all terms and conditions of this
+   Agreement, Licensor hereby grants to you a limited, non-exclusive,
+   non-transferable, non-sublicensable, revocable license to use the Binary
+   Code of the Software solely for Personal Use, as defined in Section 1(f)
+   above. This license is the only license granted under this Agreement.
+   All rights not expressly granted herein are reserved by Licensor.
+
+4. STRICT PROHIBITIONS ON COMMERCIAL USE
+
+   You are expressly prohibited from, and shall not, directly or indirectly:
+
+   a) Use the Software, including but not limited to Source Code, Binary
+      Code, or any part thereof, for any Commercial Use, as defined in
+      Section 1(d) above;
+
+   b) Create, establish, operate, or participate in any company, business
+      entity, commercial enterprise, startup, corporation, partnership,
+      limited liability company, sole proprietorship, or any other commercial
+      organization that is based on, derived from, incorporates, uses,
+      references, or is inspired by the Software in any way, shape, or form,
+      whether directly or indirectly, whether the Software is visible or
+      hidden;
+
+   c) Incorporate the Software into any commercial product, service,
+      application, platform, offering, or system, whether directly or
+      indirectly, whether the incorporation is visible or hidden, whether
+      the Software is modified or unmodified;
+
+   d) Use the Software to provide commercial services, consulting, support,
+      hosting, training, or any other commercial services to third parties,
+      whether for payment or as part of a larger commercial offering;
+
+   e) Redistribute, sublicense, sell, lease, rent, license, or otherwise
+      transfer the Software or any Derivative Work for commercial gain or
+      consideration of any kind, whether monetary or non-monetary;
+
+   f) Use the Software to compete with Licensor or any of its products,
+      services, or business interests, whether directly or indirectly;
+
+   g) Create any Derivative Work based on the Software for commercial
+      purposes, whether the Derivative Work is substantially similar or
+      significantly different;
+
+   h) Allow, enable, facilitate, or permit any third party to use the
+      Software for commercial purposes, whether you receive compensation
+      or not;
+
+   i) Circumvent, bypass, or attempt to circumvent or bypass these
+      restrictions through any means, including but not limited to: (i)
+      creating shell companies or entities; (ii) using intermediaries or
+      third parties; (iii) claiming "fair use," "fair dealing," or other
+      legal exceptions; (iv) modifying the Software to claim it is "different";
+      (v) using only portions or excerpts of the Software; (vi) claiming
+      the Software is "public domain" or "abandoned"; (vii) using the
+      Software in jurisdictions with different laws; or (viii) any other
+      method or device intended to evade the restrictions set forth herein;
+
+   j) Reverse engineer, decompile, disassemble, or otherwise attempt
+      to derive Source Code from Binary Code for any purpose, including
+      commercial or non-commercial purposes;
+
+   k) Use the Software in any way that violates the spirit or intent of
+      these restrictions, even if technically compliant with the letter
+      of the restrictions.
+
+5. ABSOLUTE PROHIBITION ON SOURCE CODE USE
+
+   The Source Code of the Software is provided solely for review, reference,
+   and educational purposes in a strictly personal, non-commercial context.
+   You are expressly prohibited from, and shall not:
+
+   a) Copy, modify, distribute, transmit, or make available the Source Code
+      in any form, except as explicitly permitted for personal, non-commercial
+      review only, and only if you do not retain any copies after review;
+
+   b) Create any Derivative Work based on the Source Code, whether for
+      commercial or non-commercial purposes, whether substantial or minimal;
+
+   c) Use the Source Code to create, develop, contribute to, or influence
+      any competing products, services, or technologies, whether directly
+      or indirectly;
+
+   d) Share, distribute, transmit, or make available the Source Code to
+      any third party, in any form, for any purpose, except as explicitly
+      permitted for personal, non-commercial review, and only with the
+      understanding that the third party is also bound by these restrictions;
+
+   e) Extract, copy, or use any algorithms, data structures, design
+      patterns, or implementation techniques from the Source Code for any
+      purpose other than personal, non-commercial review;
+
+   f) Create "clean room" implementations based on knowledge gained from
+      reviewing the Source Code;
+
+   g) Use the Source Code as reference material for developing similar
+      or competing software;
+
+   h) Store, cache, or retain the Source Code in any form beyond what is
+      necessary for immediate personal, non-commercial review;
+
+   i) Use automated tools, scripts, or programs to analyze, process, or
+      extract information from the Source Code;
+
+   j) Publish, post, or make available any analysis, commentary, or
+      documentation about the Source Code that could enable others to
+      use it commercially.
+
+6. NO EXCEPTIONS OR WAIVERS
+
+   The restrictions set forth in this Agreement are absolute, non-negotiable,
+   and irrevocable. There are no exceptions, no waivers, no implied licenses,
+   and no circumstances under which Commercial Use is permitted without
+   explicit written authorization from Licensor signed by an authorized
+   officer of the corporation.
+
+   This prohibition applies regardless of: (i) any claims of "fair use,"
+   "fair dealing," or similar legal doctrines; (ii) any claims that the
+   Software is "abandoned" or "public domain"; (iii) any claims that you
+   have "rights" under other licenses; (iv) any claims that you obtained
+   the Software from a third party; (v) any claims that you are using only
+   "portions" or "excerpts" of the Software; (vi) any claims that your use
+   is "transformative" or "different"; (vii) any claims based on
+   jurisdiction or local law; (viii) any claims of "reverse engineering
+   rights"; (ix) any claims that the restrictions are "unenforceable";
+   or (x) any other legal theory or argument.
+
+   The only way to obtain commercial use rights is through a separate,
+   written commercial license agreement executed by Licensor.
+
+7. TERMINATION
+
+   This Agreement and the license granted herein shall terminate immediately
+   and automatically, without notice, upon any violation of any term or
+   condition of this Agreement, whether such violation is intentional or
+   unintentional. Upon termination:
+
+   a) All rights granted to you under this Agreement shall immediately
+      cease;
+
+   b) You must immediately cease all use of the Software;
+
+   c) You must immediately destroy all copies of the Software in your
+      possession, custody, or control;
+
+   d) You must immediately remove the Software from all systems, devices,
+      and storage media;
+
+   e) You must not retain any copies, backups, or archives of the Software.
+
+   Continued use of the Software after termination constitutes a violation
+   of copyright and may result in legal action. The provisions of Sections
+   4, 5, 8, 9, 10, 11, 12, 13, 14, and 15 shall survive termination of
+   this Agreement.
+
+8. REMEDIES AND ENFORCEMENT
+
+   Licensor reserves all rights to enforce the terms and conditions of this
+   Agreement to the absolute maximum extent permitted by law in any
+   jurisdiction, including but not limited to:
+
+   a) Seeking immediate injunctive relief to prevent unauthorized use and
+      to force cessation of all use;
+
+   b) Seeking monetary damages for violations, including but not limited
+      to: (i) actual damages; (ii) lost profits; (iii) unjust enrichment;
+      (iv) statutory damages where available; (v) punitive or exemplary
+      damages; (vi) attorney's fees and costs; and (vii) treble or multiple
+      damages where permitted by law;
+
+   c) Pursuing criminal prosecution where applicable under copyright,
+      trade secret, or computer fraud laws;
+
+   d) Taking any other legal action deemed necessary, including but not
+      limited to: (i) cease and desist orders; (ii) asset freezes;
+      (iii) seizure of infringing materials; (iv) public disclosure of
+      violations; (v) reporting to regulatory authorities; and (vi)
+      pursuing claims against third parties who facilitate violations.
+
+   Violation of the terms of this Agreement will result in immediate legal
+   action and may result in severe legal and financial consequences,
+   including but not limited to: (i) court orders requiring destruction
+   of all copies; (ii) monetary judgments in excess of actual damages;
+   (iii) criminal penalties where applicable; (iv) permanent injunctions
+   against future use; (v) public disclosure of violations; and (vi)
+   liability for all costs and attorney's fees.
+
+   Licensor will pursue enforcement aggressively and to the fullest extent
+   permitted by law in all jurisdictions worldwide.
+
+9. DISCLAIMER OF WARRANTIES
+
+   THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+   IN NO EVENT SHALL LICENSOR OR ITS AFFILIATES, OFFICERS, DIRECTORS,
+   EMPLOYEES, AGENTS, OR REPRESENTATIVES BE LIABLE FOR ANY CLAIM, DAMAGES,
+   OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR
+   OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+   THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+10. COMMERCIAL LICENSING
+
+    If you require commercial use rights, you must obtain a separate
+    commercial license from Licensor. For commercial licensing inquiries,
+    please contact: support@neurondb.ai
+
+    Commercial use without a valid commercial license is strictly prohibited
+    and will result in immediate termination of rights and potential legal
+    action.
+
+11. ACKNOWLEDGMENT AND ACCEPTANCE
+
+    By downloading, installing, copying, accessing, viewing, using, running,
+    executing, or in any way interacting with the Software, you acknowledge,
+    represent, warrant, and agree that:
+
+    a) You have read, understood, and agree to be bound by all terms and
+       conditions of this Agreement in their entirety, without exception
+       or reservation;
+
+    b) You understand that the restrictions set forth herein are absolute
+       and apply retroactively to all versions of the Software from the
+       First Commit onwards;
+
+    c) You understand that violation of the terms of this Agreement will
+       result in immediate legal action and severe consequences;
+
+    d) You agree that your use is strictly limited to Personal Use of
+       Binary Code only, with no exceptions;
+
+    e) You agree not to use the Source Code for any commercial purpose,
+       directly or indirectly, in any way, shape, or form;
+
+    f) You agree not to attempt to circumvent, bypass, or work around the
+       restrictions set forth herein through any means;
+
+    g) You agree that the terms of this Agreement are enforceable and that
+       you will not challenge their enforceability;
+
+    h) You agree that Licensor has the right to enforce the terms of this
+       Agreement to the maximum extent permitted by law;
+
+    i) You agree that if any portion of this Agreement is found to be
+       unenforceable, the remainder shall remain in full force and effect;
+
+    j) You agree that your acceptance of the terms of this Agreement is
+       irrevocable and that you cannot later claim you did not agree to them.
+
+    If you do not agree to the terms of this Agreement, you must immediately:
+    (i) cease all access to the Software; (ii) delete all copies in your
+    possession; and (iii) not download, install, or use the Software in
+    any way.
+
+    Your continued use of the Software constitutes your acceptance of the
+    terms of this Agreement and creates a binding legal agreement between
+    you and Licensor.
+
+12. JURISDICTION AND CHOICE OF LAW
+
+    This Agreement shall be governed by and construed in accordance with
+    the laws of the jurisdiction where Licensor is incorporated or has its
+    principal place of business, without regard to its conflict of law
+    provisions. Any disputes arising from or relating to this Agreement or
+    the Software shall be resolved exclusively in the courts of such
+    jurisdiction, and you consent to the personal jurisdiction of such
+    courts.
+
+    Licensor reserves the right to bring enforcement actions in any
+    jurisdiction where violations occur, and you consent to the jurisdiction
+    of such courts. You waive any objection to venue or jurisdiction in
+    such courts.
+
+13. SEVERABILITY
+
+    If any provision of this Agreement is found to be unenforceable or
+    invalid, such provision shall be limited or eliminated to the minimum
+    extent necessary so that the remainder of this Agreement shall remain
+    in full force and effect and enforceable. The restrictions contained
+    herein shall be interpreted to give maximum protection to Licensor's
+    rights.
+
+14. NO IMPLIED LICENSES
+
+    No license, right, or permission is granted, either express or implied,
+    by estoppel or otherwise, to use the Software except as explicitly
+    stated in this Agreement. All rights not expressly granted herein are
+    reserved by Licensor. Any use not explicitly permitted is prohibited.
+
+15. ENTIRE AGREEMENT
+
+    This Agreement constitutes the complete and exclusive agreement between
+    you and Licensor regarding the use of the Software. Any prior agreements,
+    understandings, or representations are superseded by this Agreement.
+    This Agreement may only be modified by a written instrument signed by
+    an authorized officer of Licensor.
+
+    This Agreement is effective immediately and applies retroactively to
+    all versions of the Software from the First Commit in the repository
+    history (commit d6bcea1, dated December 1, 2025). The terms of this
+    Agreement apply to all code from that First Commit, regardless of
+    when this Agreement was created or updated. The restrictions set forth
+    herein have always been in effect for the Software from its inception.
+    These terms are absolute, non-negotiable, irrevocable, and will be
+    strictly and aggressively enforced to the maximum extent permitted by
+    law.
+
+END OF AGREEMENT
