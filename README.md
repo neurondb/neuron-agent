@@ -70,11 +70,8 @@ NeuronAgent integrates with NeuronDB PostgreSQL extension to provide agent runti
 ### Local Documentation
 
 - **[Features](docs/features.md)** - Complete feature list and capabilities
-- **[API Reference](docs/API.md)** - Complete REST API documentation
-- **[Architecture](docs/ARCHITECTURE.md)** - System architecture and design
-- **[CLI Guide](docs/CLI_GUIDE.md)** - Command-line interface guide
-- **[Deployment](docs/DEPLOYMENT.md)** - Deployment and configuration
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[API Reference](docs/api.md)** - Complete REST API documentation
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 The official documentation provides:
 - Complete REST API reference with examples
@@ -274,9 +271,7 @@ docker compose ps neurondb
 psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -c "CREATE EXTENSION IF NOT EXISTS neurondb;"
 
 # Run NeuronAgent migrations
-psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f NeuronAgent/sql/neuronagent_initial_schema.sql
-psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f NeuronAgent/sql/neuronagent_add_indexes.sql
-psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f NeuronAgent/sql/neuronagent_add_triggers.sql
+psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f neuron-agent/sql/neuron-agent.sql
 ```
 
 **Option 2: Native PostgreSQL Installation**
@@ -286,9 +281,7 @@ createdb neurondb
 psql -d neurondb -c "CREATE EXTENSION neurondb;"
 
 # Run migrations
-psql -d neurondb -f sql/neuronagent_initial_schema.sql
-psql -d neurondb -f sql/neuronagent_add_indexes.sql
-psql -d neurondb -f sql/neuronagent_add_triggers.sql
+psql -d neurondb -f sql/neuron-agent.sql
 ```
 
 ### Configuration
@@ -315,7 +308,7 @@ export DB_PASSWORD=neurondb
 export SERVER_PORT=8080
 ```
 
-See [Deployment Guide](docs/deployment.md) for complete configuration options.
+See [API Reference](docs/api.md) for complete configuration options.
 
 ### Run Service
 
@@ -372,7 +365,7 @@ See [Docker Guide](docker/README.md) for Docker deployment details.
 
 #### Running as a Service
 
-For systemd (Linux) or launchd (macOS), see [Service Management Guide](../../Docs/getting-started/installation-services.md).
+For systemd (Linux) or launchd (macOS), see the [neurondb installation services guide](https://github.com/neurondb/neurondb/blob/main/docs/getting-started/installation-services.md) (in the neurondb repo).
 
 ### Verify Installation
 
@@ -446,7 +439,7 @@ curl -X POST http://localhost:8080/api/v1/agents \
 | `/api/v1/sessions/{id}/messages` | POST | Send message to agent |
 | `/ws` | WebSocket | Streaming agent responses |
 
-See [API Documentation](docs/API.md) for complete API reference.
+See [API Documentation](docs/api.md) for complete API reference.
 
 ## Configuration
 
@@ -681,10 +674,8 @@ print(f"Message sent: {message['id']}")
 
 | Document | Description |
 |----------|-------------|
-| [API Reference](docs/API.md) | Complete REST API documentation |
-| [Architecture](docs/architecture.md) | System design and structure |
-| [Deployment Guide](docs/deployment.md) | Production deployment instructions |
-| [Docker Guide](docker/README.md) | Container deployment guide |
+| [API Reference](docs/api.md) | Complete REST API documentation |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 
 ## System Requirements
 
@@ -703,7 +694,7 @@ NeuronAgent requires:
 - Database user with appropriate permissions
 - Access to NeuronDB vector search and embedding functions
 
-See [NeuronDB documentation](../NeuronDB/README.md) for installation instructions.
+See [NeuronDB documentation](../neurondb/README.md) for installation instructions.
 
 ## Security
 
@@ -713,7 +704,7 @@ See [NeuronDB documentation](../NeuronDB/README.md) for installation instruction
 - Supports TLS/SSL for encrypted connections
 - Non-root user in Docker containers
 
-See [Deployment Guide](docs/deployment.md) for security best practices.
+See [API Reference](docs/api.md) for security and configuration details.
 
 ## Troubleshooting
 

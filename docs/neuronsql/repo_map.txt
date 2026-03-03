@@ -1,0 +1,121 @@
+NeuronSQL Repository Map
+========================
+Generated for NeuronSQL integration into NeuronAgent (Go).
+Target: /home/pge/pge/neuron-agent
+
+CURRENT DIRECTORIES AND CODE
+----------------------------
+src/
+  cmd/
+    bench/main.go          - Evaluation bench CLI
+    generate-key/main.go   - API key generation CLI
+    (agent-server/         - MISSING: server entry point)
+  cli/main.go              - Cobra CLI (neuronagent-cli)
+  internal/
+    api/                   - HTTP handlers (30+ files): handlers.go, middleware.go, context.go,
+                             llm_sql_handlers.go, websocket.go, streaming.go, advanced_handlers.go,
+                             batch_handlers.go, budget_handlers.go, compliance_handlers.go,
+                             embedding_handlers.go, marketplace_handlers.go, observability_handlers.go,
+                             plans_handlers.go, rag_handlers.go, reflections_handlers.go,
+                             tool_versioning_handlers.go, etc.
+    agent/                 - Agent runtime (50+ files): runtime.go, llm.go, memory.go, planner.go,
+                             reflector.go, knowledge_router.go, context.go, etc.
+    auth/                   - API keys, RBAC, audit
+    config/                - config.go, env.go, defaults.go (YAML + env overrides)
+    db/                     - connection.go, queries.go (sqlx + lib/pq)
+    tools/                 - 20+ tools: registry.go, types.go, validator.go, sql_tool.go,
+                             http_tool.go, code_tool.go, shell_tool.go, browser_tool.go,
+                             memory_tool.go, rag_tool.go, vector_tool.go, etc.
+    workflow/               - DAG engine
+    jobs/, worker/          - Job queue, memory promoter, verifier
+    observability/          - OpenTelemetry tracing middleware
+    validation/             - Request validation, SafeVirtualPath
+    metrics/                - Prometheus (prometheus.go)
+  pkg/
+    llm_sql/                - client.go, types.go, validator.go (external SQL LLM API client)
+    neurondb/               - NeuronDB client (LLM, vector, RAG, etc.)
+    neurondb_client/
+  openapi/openapi.yaml
+  go.mod, go.sum            - Go 1.24, gorilla/mux, sqlx, lib/pq, zerolog, otel, prometheus
+  configs/config.yaml.example
+  tests/                    - Python pytest (50+ modules)
+
+bin/
+  conf/neuronagent-config.yaml
+  scripts/, sql/
+
+docker/
+  Dockerfile               - Multi-stage build, builds ./cmd/agent-server
+  docker-entrypoint.sh
+
+EXISTING APIs, CLIs, SERVERS
+----------------------------
+- HTTP: Gorilla Mux (no central router file; cmd/agent-server/main.go is missing).
+- API routes (from handlers): /api/v1/agents, /api/v1/sessions, /api/v1/sessions/{id}/messages,
+  /api/v1/llm/sql/generate, explain, optimize, debug, translate, models, /health, /metrics,
+  /ws, workflows, memory, RAG, evaluations, tools, etc.
+- CLI: neuronagent-cli (Cobra) in cli/main.go; bench and generate-key in cmd/.
+
+EXISTING EMBEDDINGS OR RETRIEVAL CODE
+--------------------------------------
+- pkg/neurondb: embeddings, vector, RAG, hybrid search, reranking.
+- internal/agent: knowledge_router.go (routes queries to knowledge sources), retrieval_learning.go,
+  context.go (ContextLoader with retrieval).
+- internal/tools: rag_tool.go, retrieval_tool.go, vector_tool.go, hybrid_search_tool.go.
+
+EXISTING POSTGRES CONNECTION UTILITIES
+--------------------------------------
+- internal/db/connection.go: NewDB(connStr, poolConfig), retry with backoff, HealthCheck, GetPoolStats.
+- internal/db/queries.go: CRUD for agents, sessions, messages, tools, memory, jobs, etc.
+- Uses sqlx + lib/pq. Connection string from config (DatabaseConfig).
+
+EXISTING CONFIG, LOGGING, AUTH PATTERNS
+---------------------------------------
+- Config: internal/config/config.go (Config struct with Server, Database, Auth, Logging, Workflow,
+  Distributed, Cache, Multimodal). LoadConfig(path), LoadFromEnv, ValidateConfig.
+- Logging: zerolog throughout.
+- Auth: internal/api/middleware.go (AuthMiddleware with API key, principal, rate limiter).
+  internal/auth: APIKeyManager, PrincipalManager, RBAC (RequireAnyRole, RoleAdmin, RoleUser).
+
+WHAT WE WILL REUSE
+-------------------
+- internal/db: connection pooling, NewDB, HealthCheck (wrap with SafeConnection for NeuronSQL).
+- internal/config: add NeuronSQLConfig; reuse LoadFromEnv pattern for neuronsql.*.
+- internal/api: handler patterns (GetRequestID, GetAPIKeyFromContext, respondJSON, respondError,
+  validation.ReadAndValidateBody), middleware stack.
+- internal/tools: ToolHandler interface, Registry.RegisterHandler, ExecuteTool.
+- pkg/llm_sql: types and validator patterns (we extend with pkg/neuronsql and internal/neuronsql).
+- Gorilla Mux for route registration in cmd/agent-server/main.go.
+- zerolog, OpenTelemetry (internal/observability), Prometheus (internal/metrics).
+
+WHAT WE WILL ADD
+-----------------
+- cmd/agent-server/main.go: HTTP server entry point, router, middleware, all handler registration.
+- pkg/neuronsql: interfaces (LLMProvider, PolicyEngine, Retriever, Evaluator), models (NeuronSQLResponse).
+- internal/neuronsql/policy: classifier, sanitizer, rules, engine.
+- internal/neuronsql/tools: SafeConnection, schema_snapshot, validate_sql, explain_json, optimize,
+  table_profile, index_profile, sample_rows.
+- internal/neuronsql/provider: PGLangProvider (HTTP client), config.
+- internal/neuronsql/retrieval: chunker, BM25, vector index, HybridRetriever.
+- internal/neuronsql/prompting: templates, intent.
+- internal/neuronsql/orchestrator: Orchestrator with generate, validate, optimize, plpgsql pipelines.
+- internal/api/neuronsql_handlers.go: POST /v1/neuronsql/generate, optimize, validate, plpgsql.
+- internal/neuronsql/eval: runner, metrics, suite, fixtures.
+- PGLang HTTP server (Python FastAPI) in docker/pglang or pglang-server/.
+- docker-compose.neuronsql.yml, Dockerfile.pglang, demo scripts.
+- docs/neuronsql: architecture, security, api, eval, quickstart.
+- Makefile targets: neuronsql-serve, neuronsql-eval, neuronsql-ingest, neuronsql-demo.
+
+WHAT WE WILL NOT CHANGE
+-----------------------
+- internal/agent: agent runtime, planner, reflector, memory (no changes).
+- internal/auth: API key, RBAC, audit (no changes).
+- internal/db: existing queries and models (add only if needed for NeuronSQL).
+- internal/tools: existing tool implementations (we add NeuronSQL tools via RegisterHandler).
+- All other existing packages except config (add NeuronSQLConfig) and api (add neuronsql_handlers).
+
+EXTERNAL REPOS
+--------------
+- PGLang Engine (memorable): /home/pge/pge/memorable. Python, CLI inference (run_scratch, run_qlora).
+  No HTTP server; we add a thin FastAPI wrapper for Go to call.
+- NeuronDB: /home/pge/pge/neurondb. PostgreSQL C extension, Python SDK, docs. Optional doc source for retrieval.

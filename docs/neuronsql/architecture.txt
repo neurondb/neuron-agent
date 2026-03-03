@@ -1,0 +1,22 @@
+NeuronSQL Architecture
+======================
+
+NeuronSQL is integrated into NeuronAgent as Go packages. It provides read-only
+SQL/PLpgSQL generation, validation, and optimization using the PGLang (memorable)
+LLM and a strict policy layer.
+
+Components:
+- pkg/neuronsql: Public interfaces (LLMProvider, PolicyEngine, Retriever, Evaluator) and models.
+- internal/neuronsql/policy: SQL classifier, sanitizer, blocklist rules, PolicyEngine.
+- internal/neuronsql/tools: SafeConnection (timeouts, read-only) and 7 tools (schema_snapshot,
+  validate_sql, explain_json, optimize_candidates, table_profile, index_profile, sample_rows).
+- internal/neuronsql/provider: PGLangProvider HTTP client to PGLang server (memorable).
+- internal/neuronsql/retrieval: Chunker, BM25 index, vector index, HybridRetriever.
+- internal/neuronsql/prompting: Templates and intent parsing.
+- internal/neuronsql/orchestrator: Generate, Validate, Optimize, PLpgSQL pipelines.
+- internal/neuronsql/eval: Runner, metrics, suite definitions, fixtures.
+- internal/api/neuronsql_handlers: POST /v1/neuronsql/generate, optimize, validate, plpgsql.
+
+Flow:
+- API request -> auth -> decode -> orchestrator pipeline -> policy check -> tools/LLM -> response.
+- PGLang is a separate Python HTTP service (FastAPI) wrapping memorable inference; Go calls it via HTTP.

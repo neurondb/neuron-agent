@@ -1,0 +1,11 @@
+NeuronSQL Security
+==================
+
+- Policy engine: Only SELECT, WITH, EXPLAIN are allowed. DDL/DML/DCL and dangerous
+  patterns (DROP, TRUNCATE, GRANT, pg_read_file, COPY PROGRAM, DO $$, etc.) are blocked.
+- Single-statement only: Multi-statement input is rejected.
+- SafeConnection: statement_timeout, lock_timeout, idle_in_transaction_session_timeout,
+  read-only transaction, application_name set per request.
+- Sensitive table denylist: Optional YAML list; sample_rows and tool access respect it.
+- No execution of generated SQL by default; validation uses EXPLAIN in a rolled-back transaction.
+- Citations: Responses include tool: and doc: citations; non-trivial claims should cite evidence.
