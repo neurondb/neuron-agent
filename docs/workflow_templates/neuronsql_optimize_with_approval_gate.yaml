@@ -1,0 +1,43 @@
+# NeuronSQL Optimize with Approval Gate – ready workflow template
+# Generate/optimize SELECT then require human approval before any follow-up.
+
+name: neuronsql_optimize_with_approval_gate
+description: Optimize SELECT with neuronsql.optimize_select; approval gate before proceeding.
+
+dag_definition:
+  description: "Optimize SQL then wait for approval"
+
+steps:
+  - step_name: optimize
+    step_type: tool
+    dependencies: []
+    inputs:
+      tool_name: neuronsql.optimize_select
+      args:
+        sql: "{{workflow_inputs.sql}}"
+        schema_snapshot: "{{workflow_inputs.schema_snapshot}}"
+    retry_config:
+      max_attempts: 2
+      timeout_seconds: 90
+
+  - step_name: approval_gate
+    step_type: approval
+    dependencies: [optimize]
+    inputs:
+      title: "Approve optimized SQL"
+      description: "Review optimized SQL before use"
+      payload: "{{optimize.result}}"
+    retry_config:
+      timeout_seconds: 86400
+    # Approval step waits for HITL approve/reject
+
+  - step_name: post_approval
+    step_type: tool
+    dependencies: [approval_gate]
+    inputs:
+      tool_name: neuronsql.validate_sql
+      args:
+        sql: "{{approval_gate.approved_result.sql}}"
+        schema_snapshot: "{{workflow_inputs.schema_snapshot}}"
+
+# Workflow inputs: sql, schema_snapshot

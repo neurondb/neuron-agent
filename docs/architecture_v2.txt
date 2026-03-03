@@ -1,0 +1,113 @@
+NeuronAgent Architecture v2
+===========================
+Target architecture for enterprise-ready NeuronAgent with NeuronSQL as first-class subsystem.
+Current implementation status: see docs/product_readiness_audit.txt for module map, API surface, and gap ranking.
+
+-------------------------------------------------------------------------------
+1. TARGET ARCHITECTURE DIAGRAM (TEXT)
+-------------------------------------------------------------------------------
+
+  Client (SDK / Claw / UI)
+       |
+       v
+  Load Balancer
+       |
+       v
+  NeuronAgent Service
+  +------------------------------------------------------------------+
+  |  REST /api/v1          WebSocket /ws          Claw /claw/v1     |
+  |  (agents, sessions,    (streaming)             (tools/list,      |
+  |   messages, tools,                              tools/run,       |
+  |   memory, workflows,                            health)           |
+  |   neuronsql/*, llm/sql)                                          |
+  +------------------------------------------------------------------+
+  |  Middleware: RequestID, Timeout, Auth, BodyLimit, Security, CORS, |
+  |              Logging, (optional) RejectUnknownFields              |
+  +------------------------------------------------------------------+
+  |  Handlers --> Agent Runtime  |  Workflow Engine  |  NeuronSQL API  |
+  |                |                     |                    |     |
+  |                v                     v                    v     |
+  |  Tool Registry (built-in + neuronsql.* only for Claw)            |
+  |                |                     |                    |     |
+  |                v                     v                    v     |
+  |  Tool Runner (policy check, single-statement, limits)          |
+  |                |                     |                    |     |
+  |                v                     v                    v     |
+  |  PolicyEngine --> SafeConnection --> Postgres (NeuronDB)        |
+  +------------------------------------------------------------------+
+       |
+       v
+  PostgreSQL (NeuronDB extension: vector, RAG, ML, etc.)
+
+-------------------------------------------------------------------------------
+2. MODULE BOUNDARIES AND DATA FLOW
+-------------------------------------------------------------------------------
+
+NeuronAgent owns:
+  - Agents, sessions, messages, memory (hierarchical, vector).
+  - Workflows (DAG), approval gates, HITL.
+  - RBAC (API keys, principals, roles, tool/workspace/approval policies).
+  - Audit (tool_call, sql_execute, agent_execute, workflow_run, approval, policy_block).
+  - Budgets, rate limits (per key, per workspace).
+  - Monitoring: metrics, logs, tracing, diagnostics endpoint.
+
+NeuronSQL owns:
+  - Schema grounding (schema_snapshot from pg_catalog / information_schema).
+  - SQL validation (parse, statement class, relation/column existence).
+  - EXPLAIN JSON and plan-aware rewrite suggestions.
+  - Index suggestions (text-only in v1).
+  - PLpgSQL generation (no CREATE FUNCTION execution in v1).
+  - Safety policy (blocklist, classifier, sanitizer).
+
+Data flow:
+  1. Request enters middleware (request_id, timeout, auth, rate limit).
+  2. Handler: Agent Runtime (message -> context -> LLM -> tools -> memory -> response), or Workflow Engine (DAG steps -> agent/tool/approval/http/sql), or NeuronSQL API (generate/validate/optimize/plpgsql).
+  3. For tool execution: Registry resolves handler by tool.HandlerType; if neuronsql.*, Tool Runner runs with PolicyEngine + SafeConnection (single statement, timeouts, row/size limits). Policy block -> audit policy_block, metric, error.
+  4. All DB access: Agent state and audit in neurondb_agent schema; NeuronSQL tools use SafeConnection to target DSN (read-only, timeouts). No generic sql_execute exposed to agents or Claw.
+
+-------------------------------------------------------------------------------
+3. COMPATIBILITY AND MIGRATION PLAN
+-------------------------------------------------------------------------------
+
+Backwards compatibility:
+  - All existing /api/v1 routes and behavior remain unchanged.
+  - Existing tool handler types (sql, http, code, shell, browser, etc.) remain; no removal of read-only sql tool.
+  - Config: new env vars and profile are additive; existing env vars override file and profiles.
+  - Audit: new action types (workflow_run, approval, policy_block) are additive; existing audit_log columns unchanged.
+
+Additive changes:
+  - Optional /api/v2 prefix or version header for future breaking changes.
+  - New /claw/v1 routes; no impact on existing /api/v1.
+  - New audit event types and optional partitioned/retention tables; backfill optional.
+  - NeuronSQL module: register additional tools under neuronsql.*; existing neuronsql_generate / neuronsql_optimize can be aliased to neuronsql.generate_select and neuronsql.optimize_select.
+
+Migration steps (for operators):
+  1. Deploy new binary; run any new migrations (audit actions, RBAC tables if added).
+  2. Enable NeuronSQL module if desired (MODULE_NEURONSQL_ENABLED=true).
+  3. Configure CONFIG_PROFILE and optional ENV for dev/staging/prod.
+  4. Optionally enable request/response validation (CONFIG_REJECT_UNKNOWN_FIELDS=true) after client compatibility check.
+  5. Rollback: revert binary; migrations should be backward-compatible (no drop column); new audit actions can be ignored by old code.
+
+-------------------------------------------------------------------------------
+4. CURRENT IMPLEMENTATION STATUS (as of audit)
+-------------------------------------------------------------------------------
+
+  Implemented:
+  - All /api/v1 routes (agents, sessions, messages, tools, memory, budgets, analytics, batch, approvals, feedback,
+    memory management, llm/sql, admin/config, admin/diagnostics, workflows and schedules).
+  - Claw /claw/v1: tools/list, tools/run, health (neuronsql.* tools only).
+  - NeuronSQL module: routes at /api/v1/neuronsql/generate, optimize, validate, plpgsql; tools neuronsql.* and legacy names.
+  - Middleware: RequestID, Timeout(60s), Auth, BodyLimit(10MB), SecurityHeaders, CORS, Logging.
+  - Error responses: request_id, error_code, message, details, retryable, docs_url (and legacy code, error).
+  - Config: profiles (dev/staging/prod), env override, Redact, ConfigDump; admin/config and admin/diagnostics.
+  - Audit: LogToolCall, LogSQLStatement, LogAgentExecution, LogWorkflowRun, LogApproval, LogPolicyBlock.
+  - Policy engine: blocklist, classifier, sanitizer; SafeConnection read-only, timeouts; strict runner single-statement.
+  - Graceful shutdown: StopAll, srv.Shutdown, registry.Cleanup (drain/flush enhancements in hardening plan).
+  - Helm chart: deployment, service, probes, HPA hints, resources. Docker + docker-compose.neuronsql (pg_stat_statements).
+
+  Planned (enterprise hardening):
+  - X-API-Version header; OpenAPI complete; RejectUnknownFields wiring.
+  - Multi-tenancy (org_id, organizations, quotas); RBAC expansion; audit v2 tables and retention.
+  - Compliance profiles; reliability (idempotency, circuit breakers, DLQ, shutdown drain).
+  - Observability (structured log fields, new metrics, tracing spans); NeuronSQL hardening; blueprints, governance APIs.
+  - Packaging (Dockerfiles GPU, Helm values schema/PVC, Terraform); CI and docs.

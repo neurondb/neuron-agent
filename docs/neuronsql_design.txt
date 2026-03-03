@@ -1,0 +1,43 @@
+NeuronSQL Design
+================
+
+1. Overview
+-----------
+NeuronSQL is a safe SQL workflow for agents: schema snapshot, validate, explain, generate, optimize, and run read-only SQL via a policy engine and strict runner.
+
+2. Architecture
+---------------
+- Module: internal/modules/neuronsql registers routes and tools (neuronsql.*).
+- Tools: schema_snapshot, validate_sql, explain_json, generate_select, optimize_select, plpgsql_generate, table_profile, index_profile, sample_rows.
+- Policy engine: internal/neuronsql/policy (engine, rules, classifier, sanitizer).
+- Runner: internal/neuronsql/tools/runner.go (single statement, policy check, SELECT/EXPLAIN only, row/byte limits).
+
+3. Policy Engine
+----------------
+- Blocklist: DROP, TRUNCATE, COPY PROGRAM, DO $$, blocked functions (pg_read_file, etc.).
+- Sensitive tables: optional denylist per deployment.
+- PolicyDecision: Allowed, ReasonCode, ReasonText, BlockedTokens.
+- Check(ctx, sql, policyContext) returns decision; audit on block.
+
+4. Tool Runner
+--------------
+- EnforceSingleStatement: rejects semicolons (multi-statement).
+- ValidateSQLCharsetAndLength: rejects null bytes, control chars, excess length (configurable max).
+- RunSingleReadOnly: policy check then RunReadOnly transaction; SELECT/EXPLAIN only; LIMIT and max result size.
+
+5. EXPLAIN JSON Parser
+----------------------
+- explain_parser.go: ParseExplainJSON extracts plan nodes (Node Type, Total Cost, Plan Rows, Relation Name).
+- SuggestIndexFromPlan: suggests indexes for Seq Scan nodes with high cost/rows.
+- SuggestRewritesFromPlan: optional rewrite hints from plan shape.
+
+6. Safety Model
+---------------
+- No DML/DDL; read-only transactions; statement_timeout and lock_timeout set per connection.
+- Claw gateway exposes only neuronsql.* tools; raw sql tool not exposed to Claw.
+- Audit: policy_block and tool_call logged with hashes/metadata.
+
+7. Eval
+-------
+- tests/fixtures/neuronsql/ and internal/neuronsql/eval for regression and policy tests.
+- make neuronsql-eval runs eval suite.

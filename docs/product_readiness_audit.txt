@@ -1,0 +1,287 @@
+NeuronAgent Product Readiness Audit
+====================================
+Generated for enterprise hardening. Target: production-grade deployment with NeuronSQL as first-class subsystem.
+
+-------------------------------------------------------------------------------
+1. CURRENT MODULE MAP (src/internal/)
+-------------------------------------------------------------------------------
+
+  agent          - Runtime, memory (hierarchical, episodic, semantic, working), planner, reflector,
+                   LLM, cost tracker, collaboration, versioning, replay, event streams, RAG, retrieval
+  analytics      - Analytics dashboard
+  api            - Handlers (agents, sessions, messages, tools, memory, workflows, admin, claw, neuronsql, llm_sql),
+                   errors, models, request_id, middleware
+  auth           - API keys, principals, roles, audit logger, rate limiter, hasher, validator,
+                   data_permission, tool_permission, policy
+  browser        - Driver, config, cleanup, restore (Playwright)
+  cache          - Manager, distributed cache
+  collaboration  - Workspace, pubsub
+  compliance     - Framework
+  config         - config.go, defaults, env, LoadConfig, profiles, Redact, ValidateConfig
+  connectors     - S3, Slack, GitLab, GitHub, interface
+  core           - App, router, registry, resolver (module lifecycle)
+  db             - Connection, queries, schema, migrations, models (agents, sessions, tools, workflows,
+                   approvals, budgets, eval, replay, webhooks, specializations, plans, reflection)
+  distributed    - Leader election, balancer, memory_pubsub, coordinator
+  events         - Broker
+  eval           - Evaluator (agent performance)
+  humanloop      - Feedback, approval
+  integrations   - Integration manager
+  jobs           - Queue, processor, scheduler, worker, retry, memory_processor, memory_maintenance
+  marketplace    - Tool marketplace, agent marketplace, marketplace
+  metrics        - Prometheus (HTTP, agent, LLM, memory, tool, workflow), logging, log_context, tracing, advanced
+  modules/neuronsql - NeuronSQL module (Init registers routes + neuronsql.* tools)
+  multimodal     - Types, processor, enhanced_processor, storage
+  neuronsql/eval - Runner, metrics, suite
+  neuronsql/orchestrator - Orchestrator (generate, validate, optimize, plpgsql)
+  neuronsql/policy - Engine, rules, sanitizer, classifier
+  neuronsql/prompting - Intent, templates
+  neuronsql/provider - PGLang, config
+  neuronsql/retrieval - Retriever, vector, bm25, chunker
+  neuronsql/tools - validate_sql, schema_snapshot, runner, connection, explain_json, optimize,
+                   sample_rows, index_profile, table_profile, register
+  notifications  - Webhook, email
+  observability  - Profiler, decision_tree, middleware, metrics, debugger, tracing
+  plugins        - Plugin system
+  reliability    - Failover, error_handler, graceful_degradation, circuit_breaker
+  replay         - Replay (execution snapshots)
+  resilience     - Circuit breaker
+  safety         - Moderation
+  secrets        - Vault, env, aws, file, interface
+  security       - Secrets manager, encryption
+  session        - Cache, manager, cleanup
+  simulation     - Simulation environment
+  storage        - DB storage, storage interface
+  tools          - Registry (sql, http, code, shell, browser, visualization; + VFS/NeuronDB/collab/memory/multimodal/web_search),
+                   validator, executor, sandbox, versioning, analytics
+  validation     - sql_validator, url, uuid, budget, sanitize, common
+  visual         - Workflow designer
+  webhooks       - Webhook
+  worker         - Memory promoter, async_task_worker, verifier_worker
+  workflow       - Engine, hitl, advanced_engine (DAG, steps: agent, tool, approval, http, sql, conditional)
+
+  pkg/module     - Module, AppContext, Router, Middleware, Worker, Hooks, Logger
+  pkg/neuronsql  - Interfaces (LLMProvider, PolicyEngine, PolicyDecision, Retriever, Evaluator, etc.)
+
+-------------------------------------------------------------------------------
+2. API SURFACE MAP (from main.go buildRouter)
+-------------------------------------------------------------------------------
+
+  Unauthenticated (no auth for health/metrics):
+    GET  /health
+    GET  /metrics
+
+  /api/v1 (Bearer API key, rate limit, body limit 10MB):
+    Agents:
+      POST   /api/v1/agents
+      GET    /api/v1/agents
+      GET    /api/v1/agents/{id}
+      PUT    /api/v1/agents/{id}
+      DELETE /api/v1/agents/{id}
+      POST   /api/v1/agents/{id}/clone
+      POST   /api/v1/agents/{id}/plan
+      POST   /api/v1/agents/{id}/reflect
+      POST   /api/v1/agents/{id}/delegate
+      GET    /api/v1/agents/{id}/metrics
+      GET    /api/v1/agents/{id}/costs
+      GET    /api/v1/agents/{id}/sessions
+      GET    /api/v1/agents/{id}/memory
+      POST   /api/v1/agents/{id}/memory/search
+      POST   /api/v1/agents/{id}/memory/summarize
+      POST   /api/v1/agents/{id}/memory/consolidate
+      POST   /api/v1/agents/{id}/memory/corruption
+      POST   /api/v1/agents/{id}/memory/forget
+      POST   /api/v1/agents/{id}/memory/conflicts
+      GET    /api/v1/agents/{id}/memory/quality
+      POST   /api/v1/agents/{id}/memory/feedback
+      GET    /api/v1/agents/{id}/budget
+      POST   /api/v1/agents/{id}/budget
+      PUT    /api/v1/agents/{id}/budget
+    Sessions:
+      POST   /api/v1/sessions
+      GET    /api/v1/sessions
+      GET    /api/v1/sessions/{id}
+      PUT    /api/v1/sessions/{id}
+      DELETE /api/v1/sessions/{id}
+      POST   /api/v1/sessions/{id}/messages
+      GET    /api/v1/sessions/{id}/messages
+      GET    /api/v1/sessions/{id}/messages/{msgId}
+      PUT    /api/v1/sessions/{id}/messages/{msgId}
+      DELETE /api/v1/sessions/{id}/messages/{msgId}
+      POST   /api/v1/sessions/{id}/reflect
+      POST   /api/v1/sessions/{id}/feedback
+    Tools:
+      POST   /api/v1/tools
+      GET    /api/v1/tools
+      GET    /api/v1/tools/{id}
+      PUT    /api/v1/tools/{id}
+      DELETE /api/v1/tools/{id}
+      GET    /api/v1/tools/{id}/analytics
+    Memory:
+      GET    /api/v1/memory/{chunkId}
+      DELETE /api/v1/memory/{chunkId}
+    Analytics:
+      GET    /api/v1/analytics/overview
+      GET    /api/v1/analytics/retrieval-stats
+    Batch:
+      POST   /api/v1/batch/agents
+      POST   /api/v1/batch/agents/delete
+      POST   /api/v1/batch/messages/delete
+      POST   /api/v1/batch/tools/delete
+    HITL:
+      GET    /api/v1/approvals
+      GET    /api/v1/approvals/{id}
+      POST   /api/v1/approvals/{id}/approve
+      POST   /api/v1/approvals/{id}/reject
+      GET    /api/v1/feedback
+      GET    /api/v1/feedback/stats
+    LLM SQL:
+      POST   /api/v1/llm/sql/generate
+      POST   /api/v1/llm/sql/explain
+      POST   /api/v1/llm/sql/optimize
+      POST   /api/v1/llm/sql/debug
+      POST   /api/v1/llm/sql/translate
+      GET    /api/v1/llm/sql/models
+    Admin (admin RBAC):
+      GET    /api/v1/admin/config
+      GET    /api/v1/admin/diagnostics
+    Workflows:
+      POST   /api/v1/workflows
+      GET    /api/v1/workflows
+      GET    /api/v1/workflows/{id}
+      PUT    /api/v1/workflows/{id}
+      DELETE /api/v1/workflows/{id}
+      POST   /api/v1/workflows/{workflow_id}/steps
+      GET    /api/v1/workflows/{workflow_id}/steps
+      POST   /api/v1/workflows/{workflow_id}/execute
+      GET    /api/v1/workflows/{workflow_id}/executions/{execution_id}
+      GET    /api/v1/workflows/{workflow_id}/executions
+      POST   /api/v1/workflows/{workflow_id}/schedule
+      GET    /api/v1/workflows/{workflow_id}/schedule
+      PUT    /api/v1/workflows/{workflow_id}/schedule
+      DELETE /api/v1/workflows/{workflow_id}/schedule
+      GET    /api/v1/workflows/schedules
+
+  Module routes (when NeuronSQL enabled, same auth as v1):
+    POST   /api/v1/neuronsql/generate
+    POST   /api/v1/neuronsql/optimize
+    POST   /api/v1/neuronsql/validate
+    POST   /api/v1/neuronsql/plpgsql
+
+  Claw (neuronsql.* tools only, same auth):
+    POST   /claw/v1/tools/list
+    POST   /claw/v1/tools/run
+    GET    /claw/v1/health
+
+  Middleware order: RequestID -> RequestTimeout(60s) -> Auth -> BodyLimit(10MB) -> SecurityHeaders -> CORS -> Logging
+
+-------------------------------------------------------------------------------
+3. TOOL REGISTRY STRUCTURE
+-------------------------------------------------------------------------------
+
+  Base (NewRegistry): sql, http, code, shell, browser, visualization
+  With VFS: filesystem
+  With hierarchical memory: memory
+  With workspace: collaboration
+  With NeuronDB client: ml, vector, rag, analytics, hybrid_search, reranking
+  Additional: multimodal, web_search
+  NeuronSQL module (when enabled): neuronsql.schema_snapshot, neuronsql.validate_sql, neuronsql.explain_json,
+    neuronsql.generate_select, neuronsql.optimize_select, neuronsql.plpgsql_generate,
+    neuronsql_generate (legacy), neuronsql_optimize (legacy)
+
+  Claw gateway exposes only handlers with prefix "neuronsql." (ListClawTools). Raw "sql" is not exposed to Claw.
+  Tool execution: Registry.ExecuteTool -> handler by tool.HandlerType; audit LogToolCall async (bounded concurrency).
+
+-------------------------------------------------------------------------------
+4. WORKFLOW ENGINE BOUNDARIES
+-------------------------------------------------------------------------------
+
+  Engine: internal/workflow/engine.go. Uses db.Queries, agent.Runtime, tools.Registry, audit Logger, email, webhook, baseURL.
+  Step types: agent, tool, approval, http, sql, conditional.
+  Execution: Create execution record, load workflow and steps, execute steps in DAG order; approval steps use HITL.
+  Idempotency: GetWorkflowStepExecutionByIdempotencyKey for step replay; idempotency key per step.
+  Scheduling: workflow_schedules table; cron-based (scheduler in jobs).
+  Audit: LogWorkflowRun on execution; approval actions logged via LogApproval.
+
+-------------------------------------------------------------------------------
+5. MEMORY SUBSYSTEM LAYOUT
+-------------------------------------------------------------------------------
+
+  Hierarchical: working (current session), episodic (recent), semantic (long-term). internal/agent/hierarchical_memory.go, advanced_memory.go.
+  Promotion: working -> episodic -> semantic (memory_consolidation.go, worker/memory_promoter.go).
+  Vector search: HNSW in NeuronDB for semantic retrieval.
+  Cross-session: cross_session_memory.go; share memories across sessions with controls.
+  Features: memory_auto_writer, memory_learning, memory_forgetting, memory_corruption, memory_conflict_resolver,
+            memory_adaptation, memory_quality, memory_feedback; retrieval_learning, knowledge_router, modular_rag.
+  Storage: DB-backed; chunks with embeddings in NeuronDB.
+
+-------------------------------------------------------------------------------
+6. SECURITY FLOW DIAGRAM
+-------------------------------------------------------------------------------
+
+  Request -> RequestIDMiddleware (X-Request-ID)
+          -> RequestTimeoutMiddleware (60s)
+          -> AuthMiddleware (Bearer/ApiKey; APIKeyManager, PrincipalManager, RateLimiter; 401/429)
+          -> RequestBodyLimitMiddleware (10MB)
+          -> SecurityHeadersMiddleware
+          -> CORSMiddleware(cfg)
+          -> LoggingMiddleware
+          -> Handler (role checks via auth.RequireAnyRole where needed; admin for /admin/*)
+  Tool execution: context has agent_id, session_id, principal; AuditLogger.LogToolCall after execute.
+  NeuronSQL: PolicyEngine (blocklist, classifier, sanitizer) before any SQL run; SafeConnection read-only, timeouts.
+
+-------------------------------------------------------------------------------
+7. OBSERVABILITY INTEGRATION POINTS
+-------------------------------------------------------------------------------
+
+  Prometheus: internal/metrics/prometheus.go. Counters/histograms for HTTP (method, endpoint, status), agent (agent_id, status),
+              LLM (model, status; tokens by model, type), memory (chunks stored, etc.), tool calls, workflow (runs, duration).
+  Logging: metrics.InfoWithContext, DebugWithContext, WarnWithContext, ErrorWithContext; log_context.go WithLogContext (request_id, etc.).
+  Tracing: observability/tracing.go (stubs present); metrics/tracing.go.
+  Diagnostics: GET /api/v1/admin/diagnostics returns version, DB health, module health (AdminHandlers).
+  Request ID: Set in middleware, passed in context, included in error responses and response header.
+
+-------------------------------------------------------------------------------
+8. GAPS FOR ENTERPRISE DEPLOYMENT (RANKED)
+-------------------------------------------------------------------------------
+
+  P0 (Required for enterprise)
+    - Explicit API version response header (X-API-Version: v1).
+    - OpenAPI spec complete for all routes (NeuronSQL, Claw, admin, memory management, batch, workflows/schedules).
+    - Multi-tenancy: org_id, organizations table, org-level isolation and quotas.
+    - RBAC expansion: tool-level, workflow-level, workspace-level permissions; approval roles.
+    - Audit upgrade: dedicated tables (audit_events, policy_decisions, tool_invocations, workflow_executions, approval_actions);
+      org_id, workspace_id; retention and partitioning.
+    - Compliance profiles: standard, gdpr, hipaa, sox; memory TTL, audit verbosity, export restrictions.
+    - NeuronSQL: strict SQL length/charset validation; all tool outputs include citations, validation_report, policy_decision.
+
+  P1 (Required for SaaS)
+    - Request/response schema validation (RejectUnknownFields wired).
+    - Idempotency keys for tool calls and background jobs; workflow step time budgets.
+    - Circuit breaker per tool; tool timeouts; workflow max duration; dead-letter queue.
+    - Graceful shutdown: drain in-flight, flush audit, persist snapshots.
+    - Structured logging standard: request_id, org_id, workspace_id, agent_id, tool_name, workflow_id, latency_ms, status, cost.
+    - Prometheus: policy_blocks_total, memory_promotions_total, queue_depth, cost_per_workspace; tool latency by tool_name.
+    - Distributed tracing spans for LLM, tool chain, workflow steps, memory retrieval, NeuronSQL pipeline.
+    - Deterministic execution mode (tool-only, seed-controlled, replayable).
+
+  P2 (Scaling / optimization)
+    - Per-workspace rate limit and burst.
+    - HPA and resource limits in Helm; values.schema.json; existingSecret for DB_PASSWORD; PVC.
+    - Terraform module for Postgres, service, load balancer, monitoring.
+    - Production Dockerfiles: multi-stage, non-root; CUDA/ROCm/Metal variants.
+
+  P3 (Ecosystem)
+    - Agent blueprints (built-in templates); governance dashboard APIs (costs, tool risk, policy blocks, memory growth, performance).
+    - Marketplace: signed packages, version pinning, security rating.
+    - CI: openapi-validate, security-lint, deps-scan, integration test harness; fail on undocumented endpoints, missing audit.
+
+-------------------------------------------------------------------------------
+9. DOCUMENTATION REFERENCES
+-------------------------------------------------------------------------------
+
+  docs/architecture_v2.txt   - Target architecture and module boundaries
+  docs/product_gap_report.txt - Detailed gap list and proposed file changes
+  docs/features.md           - Feature list
+  docs/api-reference.md, api.md - API reference
+  docs/config_env_schema.txt - Env var schema (if present)

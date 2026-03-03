@@ -1,0 +1,43 @@
+NeuronAgent Security Model
+==========================
+
+1. Authentication
+-----------------
+- API keys: Stored hashed; presented via header (default: Authorization).
+- Header name configurable via AUTH_API_KEY_HEADER.
+- Principal and role resolved from API key (admin, user, etc.).
+
+2. Authorization (RBAC)
+------------------------
+- Roles: admin, user (and custom). RequireAnyRole used for endpoint access.
+- Tool-level: principal_tool_permissions table; explicit deny blocks tool execution.
+- Workflow-level: workflow_permissions (viewer, editor, executor, owner); only executor/owner may run.
+- Workspace-level: workspace_policies table for workspace-scoped policy.
+
+3. API Key Management
+----------------------
+- Keys created via admin APIs or scripts; hashed before storage.
+- Rate limiting per key (RateLimiter).
+- Org context: OrgMiddleware extracts organization_id from API key and scopes queries.
+
+4. Audit
+--------
+- AuditLogger: LogToolCall, LogSQLStatement, LogAgentExecution, LogWorkflowRun, LogApproval, LogPolicyBlock.
+- Dedicated tables: audit_events, policy_decisions, tool_invocations, workflow_executions_audit, approval_actions.
+- request_id, actor_id, workspace_id, agent_id, timestamp, decision, metadata stored.
+
+5. Compliance Profiles
+----------------------
+- standard, gdpr, hipaa, sox (see compliance_profiles.txt).
+- COMPLIANCE_PROFILE env sets profile; affects memory TTL, audit verbosity, export restrictions.
+
+6. Request Hardening
+--------------------
+- RejectUnknownFields: when enabled, request bodies with unknown JSON fields are rejected.
+- Request body size limit (e.g. 10 MiB).
+- Security headers and CORS configurable.
+
+7. NeuronSQL Safety
+-------------------
+- Policy engine: blocklist (keywords, functions, COPY PROGRAM, DO $$).
+- Single-statement, SELECT/EXPLAIN only; charset/length validation; row and byte limits.

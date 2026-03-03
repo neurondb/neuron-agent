@@ -1,0 +1,41 @@
+NeuronAgent Deployment Guide
+============================
+
+1. Prerequisites
+----------------
+- PostgreSQL (recommended 14+)
+- Environment variables or config file for DB and server
+
+2. Configuration
+-----------------
+- CONFIG_PATH: path to YAML config; otherwise defaults + LoadFromEnv.
+- Required env: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD (or use secrets in K8s).
+- Optional: SERVER_HOST, SERVER_PORT, LOG_LEVEL, COMPLIANCE_PROFILE, TOOLS_TIMEOUT, WORKFLOW_MAX_DURATION, AGENT_DETERMINISTIC_MODE.
+
+3. Docker
+---------
+- Production image: docker build -t neuronagent:latest -f docker/Dockerfile .
+- GPU variants: docker/Dockerfile.cuda (NVIDIA), docker/Dockerfile.rocm (AMD), docker/Dockerfile.metal (placeholder for macOS).
+- Use .dockerignore to keep context small. Health check on :8080/health.
+
+4. Helm
+-------
+- Chart: helm/
+- values.yaml: replicaCount, image, database (host, existingSecret for DB_PASSWORD), server, resources, autoscaling, persistence.
+- values.schema.json: JSON schema for values validation.
+- Templates: deployment, service, secret (or existingSecret), configmap, pvc, hpa.
+- Install: helm install neuron-agent ./helm -f myvalues.yaml
+- DB password: set database.existingSecret to existing Secret name with key DB_PASSWORD, or database.password for generated secret.
+
+5. Terraform
+------------
+- terraform/: variables (db_*, agent_image, agent_replicas), main.tf (placeholder; add helm_release or provider-specific resources), outputs (service_url, db_connection_info).
+- Adapt main.tf to your cloud (EKS, GKE, or VM + Docker).
+
+6. TLS
+------
+- Terminate TLS at load balancer or ingress; agent listens HTTP. For TLS at agent, use a reverse proxy or configure server with TLS in config.
+
+7. Secrets
+----------
+- Never commit DB_PASSWORD or API keys. Use Kubernetes secrets, Vault, or env at runtime.
