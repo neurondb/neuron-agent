@@ -118,7 +118,7 @@ func (ps *PluginSystem) LoadPlugin(ctx context.Context, manifest *PluginManifest
 			return existing, nil
 		}
 		/* Version mismatch - unload old version */
-		ps.unloadPlugin(ctx, existing.ID)
+		_ = ps.unloadPlugin(ctx, existing.ID)
 	}
 
 	/* Get loader for plugin type */

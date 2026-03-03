@@ -1,0 +1,71 @@
+# Manual build matrix: build, test, and lint across Go version and OS (Ubuntu, Rocky, macOS).
+name: neuron-agent Build Matrix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-test-ubuntu-macos:
+    name: Build and Test (Go ${{ matrix.go_version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        go_version: ['1.24']
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go_version }}
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test-fast
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: src
+          args: ./...
+
+  build-test-rocky:
+    name: Build and Test (Go ${{ matrix.go_version }}, rocky)
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        go_version: ['1.24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: dnf install -y make
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go_version }}
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test-fast
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: src
+          args: ./...

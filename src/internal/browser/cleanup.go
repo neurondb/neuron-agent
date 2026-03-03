@@ -104,7 +104,7 @@ func (w *CleanupWorker) cleanup() {
 
 		/* Close browser context if exists */
 		if w.driver != nil {
-			w.driver.CloseContext(sessionID)
+			_ = w.driver.CloseContext(sessionID)
 		}
 
 		deletedCount++

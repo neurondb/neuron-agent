@@ -4,7 +4,7 @@
 build:
 	@echo "Building NeuronAgent..."
 	@mkdir -p bin bin/scripts bin/conf bin/scripts/lib bin/sql
-	@cd src && go build -o ../bin/neuron-agent cmd/agent-server/main.go
+	@cd src && go build -o ../bin/neuron-agent ./cmd/agent-server
 	@echo "Copying all runtime files to bin/..."
 	@cp scripts/neuronagent-*.sh bin/scripts/ 2>/dev/null || true
 	@cp -r scripts/lib/*.sh bin/scripts/lib/ 2>/dev/null || true

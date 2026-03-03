@@ -60,7 +60,7 @@ func (sm *SchemaManager) LoadMigrations(dir string) error {
 		var name string
 		parts := strings.SplitN(strings.TrimSuffix(file.Name(), ".sql"), "_", 2)
 		if len(parts) >= 1 {
-			fmt.Sscanf(parts[0], "%d", &version)
+			_, _ = fmt.Sscanf(parts[0], "%d", &version)
 		}
 		if len(parts) >= 2 {
 			name = parts[1]

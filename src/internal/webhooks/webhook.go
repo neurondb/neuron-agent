@@ -255,21 +255,21 @@ func (wm *WebhookManager) updateDeliveryStatus(id uuid.UUID, status string, stat
 	query := `UPDATE neurondb_agent.webhook_deliveries 
 		SET status = $2, status_code = $3, response_body = $4, error_message = $5, attempt_count = attempt_count + 1
 		WHERE id = $1`
-	wm.db.ExecContext(context.Background(), query, id, status, statusCode, responseBody, errorMessage)
+	_, _ = wm.db.ExecContext(context.Background(), query, id, status, statusCode, responseBody, errorMessage)
 }
 
 /* scheduleRetry schedules a retry */
 func (wm *WebhookManager) scheduleRetry(id uuid.UUID, nextRetry time.Time) {
 	query := `UPDATE neurondb_agent.webhook_deliveries 
 		SET next_retry_at = $2 WHERE id = $1`
-	wm.db.ExecContext(context.Background(), query, id, nextRetry)
+	_, _ = wm.db.ExecContext(context.Background(), query, id, nextRetry)
 }
 
 /* markDelivered marks delivery as delivered */
 func (wm *WebhookManager) markDelivered(id uuid.UUID, deliveredAt time.Time) {
 	query := `UPDATE neurondb_agent.webhook_deliveries 
 		SET delivered_at = $2 WHERE id = $1`
-	wm.db.ExecContext(context.Background(), query, id, deliveredAt)
+	_, _ = wm.db.ExecContext(context.Background(), query, id, deliveredAt)
 }
 
 /* generateSignature generates HMAC signature for webhook payload */
