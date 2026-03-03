@@ -113,7 +113,7 @@ func (w *WorkspaceManager) AddParticipant(ctx context.Context, workspaceID uuid.
 	}
 
 	/* Broadcast update */
-	w.BroadcastUpdate(ctx, workspaceID, userID, agentID, "state_change", "Participant added", map[string]interface{}{
+	_ = w.BroadcastUpdate(ctx, workspaceID, userID, agentID, "state_change", "Participant added", map[string]interface{}{
 		"user_id":  userID,
 		"agent_id": agentID,
 		"role":     role,

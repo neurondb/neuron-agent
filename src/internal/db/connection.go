@@ -171,7 +171,7 @@ func parseConnectionInfo(connStr string) *ConnectionInfo {
 		if strings.HasPrefix(part, "host=") {
 			info.Host = strings.TrimPrefix(part, "host=")
 		} else if strings.HasPrefix(part, "port=") {
-			fmt.Sscanf(strings.TrimPrefix(part, "port="), "%d", &info.Port)
+			_, _ = fmt.Sscanf(strings.TrimPrefix(part, "port="), "%d", &info.Port)
 		} else if strings.HasPrefix(part, "dbname=") {
 			info.Database = strings.TrimPrefix(part, "dbname=")
 		} else if strings.HasPrefix(part, "user=") {

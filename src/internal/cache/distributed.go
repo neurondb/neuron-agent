@@ -152,7 +152,7 @@ func (dc *DistributedCache) Get(ctx context.Context, key string) (interface{}, b
 	if dc.enabled && dc.pgCache.enabled {
 		if value, ok := dc.pgCache.Get(ctx, key); ok {
 			/* Promote to L1 */
-			dc.l1Cache.CacheResponse(ctx, key, value, 5*time.Minute)
+			_ = dc.l1Cache.CacheResponse(ctx, key, value, 5*time.Minute)
 			metrics.InfoWithContext(ctx, "Cache hit L2", map[string]interface{}{
 				"key": key,
 			})
@@ -164,9 +164,9 @@ func (dc *DistributedCache) Get(ctx context.Context, key string) (interface{}, b
 	if value, ok := dc.dbCache.Get(ctx, key); ok {
 		/* Promote to L2 and L1 */
 		if dc.enabled && dc.pgCache.enabled {
-			dc.pgCache.Set(ctx, key, value, 10*time.Minute)
+			_ = dc.pgCache.Set(ctx, key, value, 10*time.Minute)
 		}
-		dc.l1Cache.CacheResponse(ctx, key, value, 5*time.Minute)
+		_ = dc.l1Cache.CacheResponse(ctx, key, value, 5*time.Minute)
 		metrics.InfoWithContext(ctx, "Cache hit L3", map[string]interface{}{
 			"key": key,
 		})
