@@ -1,0 +1,1 @@
+{"prompts": [{"id": "saas1", "question": "Count users", "expected_keywords": ["SELECT", "COUNT", "users"]}]}

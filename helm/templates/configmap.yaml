@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neuron-agent.fullname" . }}
+  labels:
+    app: neuron-agent
+data:
+  SERVER_HOST: {{ .Values.server.host | quote }}
+  SERVER_PORT: {{ .Values.server.port | quote }}
+  DB_HOST: {{ .Values.database.host | quote }}
+  DB_PORT: {{ .Values.database.port | quote }}
+  DB_NAME: {{ .Values.database.name | quote }}
+  DB_USER: {{ .Values.database.user | quote }}

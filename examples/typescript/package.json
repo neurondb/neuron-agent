@@ -1,0 +1,14 @@
+{
+  "name": "neuronsql-example",
+  "version": "1.0.0",
+  "description": "Minimal NeuronSQL example",
+  "scripts": {
+    "start": "ts-node neuronsql_minimal.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}
