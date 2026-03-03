@@ -131,6 +131,22 @@ const (
 		WHERE session_id = $1 AND tool_name = $2`
 )
 
+/* Principal tool permission queries (RBAC) */
+const (
+	getPrincipalToolPermissionQuery = `
+		SELECT principal_id, tool_name, allowed, created_at, updated_at
+		FROM neurondb_agent.principal_tool_permissions
+		WHERE principal_id = $1 AND tool_name = $2`
+)
+
+/* Workflow permission queries (RBAC) */
+const (
+	getWorkflowPermissionQuery = `
+		SELECT id, principal_id, workflow_id, role, created_at, updated_at
+		FROM neurondb_agent.workflow_permissions
+		WHERE principal_id = $1 AND workflow_id = $2`
+)
+
 /* Data permission queries */
 const (
 	createDataPermissionQuery = `
@@ -436,6 +452,32 @@ func (q *Queries) DeleteSessionToolPermission(ctx context.Context, sessionID uui
 			q.getConnInfoString(), deleteSessionToolPermissionQuery, sessionID.String(), toolName, err)
 	}
 	return nil
+}
+
+/* GetPrincipalToolPermission returns principal-level tool permission if set. Nil when no row (no override). */
+func (q *Queries) GetPrincipalToolPermission(ctx context.Context, principalID uuid.UUID, toolName string) (*PrincipalToolPermission, error) {
+	var p PrincipalToolPermission
+	err := q.DB.GetContext(ctx, &p, getPrincipalToolPermissionQuery, principalID, toolName)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, q.formatQueryError("SELECT", getPrincipalToolPermissionQuery, 2, "neurondb_agent.principal_tool_permissions", err)
+	}
+	return &p, nil
+}
+
+/* GetWorkflowPermission returns workflow role for principal if set. */
+func (q *Queries) GetWorkflowPermission(ctx context.Context, principalID, workflowID uuid.UUID) (*WorkflowPermission, error) {
+	var p WorkflowPermission
+	err := q.DB.GetContext(ctx, &p, getWorkflowPermissionQuery, principalID, workflowID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, q.formatQueryError("SELECT", getWorkflowPermissionQuery, 2, "neurondb_agent.workflow_permissions", err)
+	}
+	return &p, nil
 }
 
 /* Data permission methods */

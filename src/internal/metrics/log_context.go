@@ -26,14 +26,21 @@ import (
 type contextKey string
 
 const (
-	requestIDKey contextKey = "request_id"
-	agentIDKey   contextKey = "agent_id"
-	sessionIDKey contextKey = "session_id"
-	toolIDKey    contextKey = "tool_id"
-	traceIDKey   contextKey = "trace_id"
+	requestIDKey    contextKey = "request_id"
+	agentIDKey      contextKey = "agent_id"
+	sessionIDKey    contextKey = "session_id"
+	toolIDKey       contextKey = "tool_id"
+	traceIDKey      contextKey = "trace_id"
+	orgIDKey        contextKey = "org_id"
+	workspaceIDKey  contextKey = "workspace_id"
+	toolNameKey     contextKey = "tool_name"
+	workflowIDKey   contextKey = "workflow_id"
+	latencyMsKey    contextKey = "latency_ms"
+	statusKey       contextKey = "status"
+	costKey         contextKey = "cost"
 )
 
-/* WithLogContext adds logging fields to context */
+/* WithLogContext adds logging fields to context (standard fields: request_id, org_id, workspace_id, agent_id, tool_name, workflow_id, latency_ms, status, cost). */
 func WithLogContext(ctx context.Context, requestID, agentID, sessionID, toolID, traceID string) context.Context {
 	if requestID != "" {
 		ctx = context.WithValue(ctx, requestIDKey, requestID)
@@ -51,6 +58,56 @@ func WithLogContext(ctx context.Context, requestID, agentID, sessionID, toolID, 
 		ctx = context.WithValue(ctx, traceIDKey, traceID)
 	}
 	return ctx
+}
+
+/* WithOrgIDLogContext adds org_id to log context */
+func WithOrgIDLogContext(ctx context.Context, orgID string) context.Context {
+	if orgID != "" {
+		return context.WithValue(ctx, orgIDKey, orgID)
+	}
+	return ctx
+}
+
+/* WithWorkspaceIDLogContext adds workspace_id to log context */
+func WithWorkspaceIDLogContext(ctx context.Context, workspaceID string) context.Context {
+	if workspaceID != "" {
+		return context.WithValue(ctx, workspaceIDKey, workspaceID)
+	}
+	return ctx
+}
+
+/* WithToolNameLogContext adds tool_name to log context */
+func WithToolNameLogContext(ctx context.Context, toolName string) context.Context {
+	if toolName != "" {
+		return context.WithValue(ctx, toolNameKey, toolName)
+	}
+	return ctx
+}
+
+/* WithWorkflowIDLogContext adds workflow_id to log context */
+func WithWorkflowIDLogContext(ctx context.Context, workflowID string) context.Context {
+	if workflowID != "" {
+		return context.WithValue(ctx, workflowIDKey, workflowID)
+	}
+	return ctx
+}
+
+/* WithLatencyMsLogContext adds latency_ms to log context */
+func WithLatencyMsLogContext(ctx context.Context, latencyMs int64) context.Context {
+	return context.WithValue(ctx, latencyMsKey, latencyMs)
+}
+
+/* WithStatusLogContext adds status to log context */
+func WithStatusLogContext(ctx context.Context, status string) context.Context {
+	if status != "" {
+		return context.WithValue(ctx, statusKey, status)
+	}
+	return ctx
+}
+
+/* WithCostLogContext adds cost to log context */
+func WithCostLogContext(ctx context.Context, cost float64) context.Context {
+	return context.WithValue(ctx, costKey, cost)
 }
 
 /* WithAgentIDLogContext adds agent ID to log context */
@@ -126,15 +183,28 @@ func LoggerFromContext(ctx context.Context) zerolog.Logger {
 		logger = zerolog.Nop()
 	}
 
-	/* Add context fields */
+	/* Add standard context fields (request_id, org_id, workspace_id, agent_id, tool_name, workflow_id, latency_ms, status, cost) */
 	requestID := GetRequestIDFromContext(ctx)
 	agentID := GetAgentIDFromContext(ctx)
 	sessionID := GetSessionIDFromContext(ctx)
 	toolID := GetToolIDFromContext(ctx)
 	traceID := GetTraceIDFromContext(ctx)
+	orgID := getStringFromContext(ctx, orgIDKey)
+	workspaceID := getStringFromContext(ctx, workspaceIDKey)
+	toolName := getStringFromContext(ctx, toolNameKey)
+	workflowID := getStringFromContext(ctx, workflowIDKey)
+	status := getStringFromContext(ctx, statusKey)
+	latencyMs := getInt64FromContext(ctx, latencyMsKey)
+	cost := getFloat64FromContext(ctx, costKey)
 
 	if requestID != "" {
 		logger = logger.With().Str("request_id", requestID).Logger()
+	}
+	if orgID != "" {
+		logger = logger.With().Str("org_id", orgID).Logger()
+	}
+	if workspaceID != "" {
+		logger = logger.With().Str("workspace_id", workspaceID).Logger()
 	}
 	if agentID != "" {
 		logger = logger.With().Str("agent_id", agentID).Logger()
@@ -145,11 +215,47 @@ func LoggerFromContext(ctx context.Context) zerolog.Logger {
 	if toolID != "" {
 		logger = logger.With().Str("tool_id", toolID).Logger()
 	}
+	if toolName != "" {
+		logger = logger.With().Str("tool_name", toolName).Logger()
+	}
+	if workflowID != "" {
+		logger = logger.With().Str("workflow_id", workflowID).Logger()
+	}
 	if traceID != "" {
 		logger = logger.With().Str("trace_id", traceID).Logger()
 	}
+	if status != "" {
+		logger = logger.With().Str("status", status).Logger()
+	}
+	if latencyMs != 0 {
+		logger = logger.With().Int64("latency_ms", latencyMs).Logger()
+	}
+	if cost != 0 {
+		logger = logger.With().Float64("cost", cost).Logger()
+	}
 
 	return logger
+}
+
+func getStringFromContext(ctx context.Context, key contextKey) string {
+	if v, ok := ctx.Value(key).(string); ok {
+		return v
+	}
+	return ""
+}
+
+func getInt64FromContext(ctx context.Context, key contextKey) int64 {
+	if v, ok := ctx.Value(key).(int64); ok {
+		return v
+	}
+	return 0
+}
+
+func getFloat64FromContext(ctx context.Context, key contextKey) float64 {
+	if v, ok := ctx.Value(key).(float64); ok {
+		return v
+	}
+	return 0
 }
 
 /* LogWithContext logs a message with context fields */

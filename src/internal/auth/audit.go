@@ -25,6 +25,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/neurondb/NeuronAgent/internal/db"
+	"github.com/neurondb/NeuronAgent/internal/metrics"
 )
 
 type AuditLogger struct {
@@ -130,6 +131,77 @@ func (a *AuditLogger) LogAgentExecution(ctx context.Context, principalID, apiKey
 	return nil
 }
 
+/* LogWorkflowRun logs a workflow run to the audit log */
+func (a *AuditLogger) LogWorkflowRun(ctx context.Context, principalID, apiKeyID *uuid.UUID, workflowID, executionID string, status string, metadata map[string]interface{}) error {
+	if metadata == nil {
+		metadata = make(db.JSONBMap)
+	}
+	metadata["workflow_id"] = workflowID
+	metadata["execution_id"] = executionID
+	metadata["status"] = status
+	auditLog := &db.AuditLog{
+		Timestamp:    time.Now(),
+		PrincipalID:  principalID,
+		APIKeyID:     apiKeyID,
+		Action:       "workflow_run",
+		ResourceType: "workflow",
+		ResourceID:   &executionID,
+		Metadata:     metadata,
+	}
+	if err := a.queries.CreateAuditLog(ctx, auditLog); err != nil {
+		return fmt.Errorf("failed to create audit log: %w", err)
+	}
+	return nil
+}
+
+/* LogApproval logs an approval or rejection to the audit log */
+func (a *AuditLogger) LogApproval(ctx context.Context, principalID, apiKeyID *uuid.UUID, approvalID, decision string, metadata map[string]interface{}) error {
+	if metadata == nil {
+		metadata = make(db.JSONBMap)
+	}
+	metadata["approval_id"] = approvalID
+	metadata["decision"] = decision
+	auditLog := &db.AuditLog{
+		Timestamp:    time.Now(),
+		PrincipalID:  principalID,
+		APIKeyID:     apiKeyID,
+		Action:       "approval",
+		ResourceType: "approval",
+		ResourceID:   &approvalID,
+		Metadata:     metadata,
+	}
+	if err := a.queries.CreateAuditLog(ctx, auditLog); err != nil {
+		return fmt.Errorf("failed to create audit log: %w", err)
+	}
+	return nil
+}
+
+/* LogPolicyBlock logs a policy block (e.g. NeuronSQL blocked SQL) to the audit log */
+func (a *AuditLogger) LogPolicyBlock(ctx context.Context, principalID, apiKeyID, agentID, sessionID *uuid.UUID, toolName, reasonCode string, metadata map[string]interface{}) error {
+	if metadata == nil {
+		metadata = make(db.JSONBMap)
+	}
+	metadata["tool"] = toolName
+	metadata["reason_code"] = reasonCode
+	rid := reasonCode
+	auditLog := &db.AuditLog{
+		Timestamp:    time.Now(),
+		PrincipalID:  principalID,
+		APIKeyID:     apiKeyID,
+		AgentID:      agentID,
+		SessionID:    sessionID,
+		Action:       "policy_block",
+		ResourceType: "tool",
+		ResourceID:   &rid,
+		Metadata:     metadata,
+	}
+	if err := a.queries.CreateAuditLog(ctx, auditLog); err != nil {
+		return fmt.Errorf("failed to create audit log: %w", err)
+	}
+	metrics.RecordPolicyBlock(reasonCode)
+	return nil
+}
+
 /* hashMap computes SHA-256 hash of a map (JSON-encoded) */
 func (a *AuditLogger) hashMap(m map[string]interface{}) (string, error) {
 	if m == nil || len(m) == 0 {
@@ -143,6 +215,11 @@ func (a *AuditLogger) hashMap(m map[string]interface{}) (string, error) {
 
 	hash := sha256.Sum256(jsonBytes)
 	return hex.EncodeToString(hash[:]), nil
+}
+
+/* Flush ensures any buffered audit entries are written. No-op when audit writes directly to DB; implement when using a buffer. */
+func (a *AuditLogger) Flush(ctx context.Context) error {
+	return nil
 }
 
 /* hashString computes SHA-256 hash of a string */

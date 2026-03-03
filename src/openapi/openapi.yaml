@@ -39,6 +39,10 @@ tags:
     description: Agent specialization management
   - name: Health
     description: Health check endpoints
+  - name: Admin
+    description: Admin config and diagnostics (admin RBAC)
+  - name: NeuronSQL
+    description: NeuronSQL generate, validate, optimize, plpgsql
 
 paths:
   /health:
@@ -49,7 +53,18 @@ paths:
       description: Check if the service is healthy
       operationId: healthCheck
       security: []
-    
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
     EvalTask:
       type: object
       properties:
@@ -1247,6 +1262,160 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Specialization'
+
+  /admin/config:
+    get:
+      tags:
+        - Admin
+      summary: Get redacted config (admin only)
+      operationId: getAdminConfig
+      responses:
+        '200':
+          description: Redacted configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Forbidden
+
+  /admin/diagnostics:
+    get:
+      tags:
+        - Admin
+      summary: Get diagnostics (DB, modules, version) (admin only)
+      operationId: getAdminDiagnostics
+      responses:
+        '200':
+          description: Diagnostics payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  database:
+                    type: object
+                  modules:
+                    type: object
+        '403':
+          description: Forbidden
+
+  /neuronsql/generate:
+    post:
+      tags:
+        - NeuronSQL
+      summary: Generate SQL from natural language
+      operationId: neuronsqlGenerate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [db_dsn, question]
+              properties:
+                db_dsn:
+                  type: string
+                question:
+                  type: string
+      responses:
+        '200':
+          description: Generated SQL and metadata
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+
+  /neuronsql/optimize:
+    post:
+      tags:
+        - NeuronSQL
+      summary: Optimize SQL (plan-aware)
+      operationId: neuronsqlOptimize
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [db_dsn, sql]
+              properties:
+                db_dsn:
+                  type: string
+                sql:
+                  type: string
+      responses:
+        '200':
+          description: Optimization result
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+
+  /neuronsql/validate:
+    post:
+      tags:
+        - NeuronSQL
+      summary: Validate SQL (policy + parse)
+      operationId: neuronsqlValidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [db_dsn, sql]
+              properties:
+                db_dsn:
+                  type: string
+                sql:
+                  type: string
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+
+  /neuronsql/plpgsql:
+    post:
+      tags:
+        - NeuronSQL
+      summary: Generate PL/pgSQL from signature and purpose
+      operationId: neuronsqlPLpgSQL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [db_dsn, signature, purpose]
+              properties:
+                db_dsn:
+                  type: string
+                signature:
+                  type: string
+                purpose:
+                  type: string
+      responses:
+        '200':
+          description: Generated PL/pgSQL (text only, no execution)
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
 
 components:
   securitySchemes:

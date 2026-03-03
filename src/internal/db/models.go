@@ -25,6 +25,7 @@ import (
 
 type Agent struct {
 	ID           uuid.UUID      `db:"id"`
+	OrgID        *uuid.UUID     `db:"org_id"`
 	Name         string         `db:"name"`
 	Description  *string        `db:"description"`
 	SystemPrompt string         `db:"system_prompt"`
@@ -37,12 +38,13 @@ type Agent struct {
 }
 
 type Session struct {
-	ID             uuid.UUID `db:"id"`
-	AgentID        uuid.UUID `db:"agent_id"`
-	ExternalUserID *string   `db:"external_user_id"`
-	Metadata       JSONBMap  `db:"metadata"`
-	CreatedAt      time.Time `db:"created_at"`
-	LastActivityAt time.Time `db:"last_activity_at"`
+	ID             uuid.UUID  `db:"id"`
+	OrgID          *uuid.UUID `db:"org_id"`
+	AgentID        uuid.UUID  `db:"agent_id"`
+	ExternalUserID *string    `db:"external_user_id"`
+	Metadata       JSONBMap   `db:"metadata"`
+	CreatedAt      time.Time  `db:"created_at"`
+	LastActivityAt time.Time  `db:"last_activity_at"`
 }
 
 type Message struct {
@@ -156,6 +158,35 @@ type SessionToolPermission struct {
 	Allowed    bool      `db:"allowed"`
 	Conditions JSONBMap  `db:"conditions"`
 	CreatedAt  time.Time `db:"created_at"`
+}
+
+/* PrincipalToolPermission is principal-level tool allow/deny (RBAC). */
+type PrincipalToolPermission struct {
+	PrincipalID uuid.UUID `db:"principal_id"`
+	ToolName    string    `db:"tool_name"`
+	Allowed     bool      `db:"allowed"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}
+
+/* WorkflowPermission is principal workflow role (RBAC). */
+type WorkflowPermission struct {
+	ID          uuid.UUID `db:"id"`
+	PrincipalID uuid.UUID `db:"principal_id"`
+	WorkflowID  uuid.UUID `db:"workflow_id"`
+	Role        string    `db:"role"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}
+
+/* WorkspacePolicy is workspace-level policy config (RBAC/ABAC). */
+type WorkspacePolicy struct {
+	ID          uuid.UUID `db:"id"`
+	WorkspaceID uuid.UUID `db:"workspace_id"`
+	PolicyType  string    `db:"policy_type"`
+	Config      JSONBMap  `db:"config"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
 }
 
 type DataPermission struct {

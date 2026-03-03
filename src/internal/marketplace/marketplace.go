@@ -32,20 +32,23 @@ type Marketplace struct {
 
 /* MarketplaceItem represents an item in the marketplace */
 type MarketplaceItem struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	Type        MarketplaceItemType
-	Author      string
-	Version     string
-	Rating      float64
-	Downloads   int64
-	Price       float64
-	Free        bool
-	Tags        []string
-	Metadata    map[string]interface{}
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID              uuid.UUID
+	Name            string
+	Description     string
+	Type            MarketplaceItemType
+	Author          string
+	Version         string
+	Rating          float64
+	SecurityRating  string   /* e.g. "verified", "community", "unverified" for signed/verified packages */
+	Signature       string   /* optional signature for package verification */
+	VersionConstraint string /* optional version pinning constraint e.g. ">=1.0,<2" */
+	Downloads       int64
+	Price           float64
+	Free            bool
+	Tags            []string
+	Metadata        map[string]interface{}
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 /* MarketplaceItemType represents the type of marketplace item */

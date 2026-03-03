@@ -28,9 +28,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/neurondb/NeuronAgent/internal/agent"
+	"github.com/neurondb/NeuronAgent/internal/auth"
 	"github.com/neurondb/NeuronAgent/internal/db"
 	"github.com/neurondb/NeuronAgent/internal/metrics"
 	"github.com/neurondb/NeuronAgent/internal/notifications"
+	"github.com/neurondb/NeuronAgent/internal/observability"
 	"github.com/neurondb/NeuronAgent/internal/validation"
 )
 
@@ -40,7 +42,10 @@ type Engine struct {
 	toolRegistry   agent.ToolRegistry
 	emailService   *notifications.EmailService
 	webhookService *notifications.WebhookService
+	auditLogger    *auth.AuditLogger
 	baseURL        string
+	maxDuration    time.Duration           /* max total time for a workflow run; 0 = no limit */
+	tracer         *observability.Tracer   /* optional distributed tracing */
 }
 
 func NewEngine(queries *db.Queries) *Engine {
@@ -72,8 +77,46 @@ func (e *Engine) SetBaseURL(baseURL string) {
 	e.baseURL = baseURL
 }
 
+/* SetAuditLogger sets the audit logger for workflow_run and approval events */
+func (e *Engine) SetAuditLogger(logger *auth.AuditLogger) {
+	e.auditLogger = logger
+}
+
+/* SetMaxDuration sets the maximum total time for a workflow run; 0 means no limit. */
+func (e *Engine) SetMaxDuration(d time.Duration) {
+	e.maxDuration = d
+}
+
+/* SetTracer sets the optional distributed tracer for workflow execution spans. */
+func (e *Engine) SetTracer(t *observability.Tracer) {
+	e.tracer = t
+}
+
 /* ExecuteWorkflow executes a workflow with given inputs */
 func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, triggerType string, triggerData map[string]interface{}, inputs map[string]interface{}) (*db.WorkflowExecution, error) {
+	if e.tracer != nil {
+		var spanID string
+		ctx, spanID = e.tracer.StartSpan(ctx, "workflow.execute")
+		defer e.tracer.EndSpan(ctx, spanID, map[string]interface{}{"workflow_id": workflowID.String()})
+	}
+	if e.maxDuration > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, e.maxDuration)
+		defer cancel()
+	}
+	/* RBAC: require at least executor role when principal is set and workflow_permissions row exists */
+	if principal := auth.GetPrincipal(ctx); principal != nil {
+		perm, err := e.queries.GetWorkflowPermission(ctx, principal.ID, workflowID)
+		if err == nil && perm != nil {
+			switch perm.Role {
+			case "viewer":
+				return nil, fmt.Errorf("workflow execution denied: principal has viewer role only (workflow_id=%s)", workflowID.String())
+			case "editor":
+				return nil, fmt.Errorf("workflow execution denied: principal has editor role only, executor or owner required (workflow_id=%s)", workflowID.String())
+			}
+		}
+	}
+
 	/* Create execution */
 	execution := &db.WorkflowExecution{
 		WorkflowID:  workflowID,
@@ -88,6 +131,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 	if err := e.queries.CreateWorkflowExecution(ctx, execution); err != nil {
 		return nil, fmt.Errorf("failed to create workflow execution: %w", err)
 	}
+	if e.auditLogger != nil {
+		_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "pending", map[string]interface{}{"trigger_type": triggerType})
+	}
 
 	/* Load workflow and steps */
 	_, err := e.queries.GetWorkflowByID(ctx, workflowID)
@@ -101,6 +147,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 				"workflow_id":  workflowID.String(),
 				"error":        updateErr.Error(),
 			})
+		}
+		if e.auditLogger != nil {
+			_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "failed", nil)
 		}
 		return nil, fmt.Errorf("failed to load workflow: %w", err)
 	}
@@ -117,6 +166,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 				"error":        updateErr.Error(),
 			})
 		}
+		if e.auditLogger != nil {
+			_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "failed", nil)
+		}
 		return nil, fmt.Errorf("failed to load workflow steps: %w", err)
 	}
 
@@ -128,6 +180,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 				"workflow_id":  workflowID.String(),
 				"error":        err.Error(),
 			})
+		}
+		if e.auditLogger != nil {
+			_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "completed", nil)
 		}
 		return execution, nil
 	}
@@ -145,6 +200,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 				"error":        updateErr.Error(),
 			})
 		}
+		if e.auditLogger != nil {
+			_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "failed", nil)
+		}
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}
 
@@ -152,6 +210,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 	execution.Status = "running"
 	if err := e.queries.UpdateWorkflowExecution(ctx, execution); err != nil {
 		return nil, fmt.Errorf("failed to update execution status: %w", err)
+	}
+	if e.auditLogger != nil {
+		_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "running", nil)
 	}
 
 	stepOutputs := make(map[uuid.UUID]map[string]interface{})
@@ -176,6 +237,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 					"error":        updateErr.Error(),
 				})
 			}
+			if e.auditLogger != nil {
+				_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "failed", nil)
+			}
 			return nil, fmt.Errorf("step not found: %s", stepID.String())
 		}
 
@@ -190,6 +254,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 			execution.ErrorMessage = &errorMsg
 			/* Ignore update errors - workflow is already in failed state, error is returned to caller */
 			_ = e.queries.UpdateWorkflowExecution(ctx, execution)
+			if e.auditLogger != nil {
+				_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "failed", nil)
+			}
 			return nil, fmt.Errorf("step execution failed: step_name='%s', error=%w", step.StepName, err)
 		}
 
@@ -219,7 +286,9 @@ func (e *Engine) ExecuteWorkflow(ctx context.Context, workflowID uuid.UUID, trig
 	if err := e.queries.UpdateWorkflowExecution(ctx, execution); err != nil {
 		return nil, fmt.Errorf("failed to update execution completion: %w", err)
 	}
-
+	if e.auditLogger != nil {
+		_ = e.auditLogger.LogWorkflowRun(ctx, nil, nil, workflowID.String(), execution.ID.String(), "completed", nil)
+	}
 	return execution, nil
 }
 
@@ -234,6 +303,20 @@ func (e *Engine) ExecuteStep(ctx context.Context, executionID uuid.UUID, step *d
 		if existingExecution != nil && existingExecution.Status == "completed" {
 			/* Return cached result */
 			return existingExecution.Outputs, nil
+		}
+	}
+
+	/* Per-step time budget from retry_config.timeout_seconds */
+	stepCtx := ctx
+	var cancel context.CancelFunc
+	if step.RetryConfig != nil {
+		if sec := getStepTimeoutSeconds(step.RetryConfig); sec > 0 {
+			stepCtx, cancel = context.WithTimeout(ctx, time.Duration(sec)*time.Second)
+			defer func() {
+				if cancel != nil {
+					cancel()
+				}
+			}()
 		}
 	}
 
@@ -260,15 +343,15 @@ func (e *Engine) ExecuteStep(ctx context.Context, executionID uuid.UUID, step *d
 
 	switch step.StepType {
 	case "agent":
-		outputs, err = e.executeAgentStep(ctx, step, inputs)
+		outputs, err = e.executeAgentStep(stepCtx, step, inputs)
 	case "tool":
-		outputs, err = e.executeToolStep(ctx, step, inputs)
+		outputs, err = e.executeToolStep(stepCtx, step, inputs)
 	case "approval":
-		outputs, err = e.executeApprovalStep(ctx, executionID, stepExecution.ID, step, inputs)
+		outputs, err = e.executeApprovalStep(stepCtx, executionID, stepExecution.ID, step, inputs)
 	case "http":
-		outputs, err = e.executeHTTPStep(ctx, step, inputs)
+		outputs, err = e.executeHTTPStep(stepCtx, step, inputs)
 	case "sql":
-		outputs, err = e.executeSQLStep(ctx, step, inputs)
+		outputs, err = e.executeSQLStep(stepCtx, step, inputs)
 	default:
 		err = fmt.Errorf("unknown step type: %s", step.StepType)
 	}
@@ -696,6 +779,17 @@ func getMaxRetries(retryConfig db.JSONBMap) int {
 		return int(maxRetries)
 	}
 	return 3 /* Default */
+}
+
+/* getStepTimeoutSeconds returns timeout_seconds from retry_config (float64 or int from JSON) */
+func getStepTimeoutSeconds(retryConfig db.JSONBMap) int64 {
+	if v, ok := retryConfig["timeout_seconds"].(float64); ok && v > 0 {
+		return int64(v)
+	}
+	if v, ok := retryConfig["timeout_seconds"].(int); ok && v > 0 {
+		return int64(v)
+	}
+	return 0
 }
 
 /* buildDAG builds a dependency graph and returns steps in topological order */

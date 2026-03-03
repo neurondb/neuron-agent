@@ -64,6 +64,11 @@ func DefaultConfig() *Config {
 			OCRProvider: "tesseract",
 			APIKeys:     make(map[string]string),
 		},
+		Modules: map[string]ModuleEntry{
+			"neuronsql": {Enabled: true, Config: make(map[string]interface{})},
+		},
+		Profile:             "",
+		RejectUnknownFields: false,
 	}
 }
 

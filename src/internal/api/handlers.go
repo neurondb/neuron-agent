@@ -73,7 +73,7 @@ func (h *Handlers) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	var req CreateAgentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		respondError(w, NewErrorWithContext(http.StatusBadRequest, "agent creation failed: request body parsing error", err, requestID, endpoint, method, "agent", "", map[string]interface{}{
 			"body_size": len(bodyBytes),
 		}))
@@ -85,7 +85,9 @@ func (h *Handlers) CreateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgID, _ := auth.GetOrgIDFromContext(r.Context())
 	agent := &db.Agent{
+		OrgID:        orgID,
 		Name:         req.Name,
 		Description:  req.Description,
 		SystemPrompt: req.SystemPrompt,
@@ -137,11 +139,20 @@ func (h *Handlers) ListAgents(w http.ResponseWriter, r *http.Request) {
 	var agents []db.Agent
 	var err error
 
+	orgID, hasOrg := auth.GetOrgIDFromContext(r.Context())
 	search := r.URL.Query().Get("search")
-	if search != "" {
-		agents, err = h.queries.ListAgentsWithFilter(r.Context(), &search)
+	if hasOrg && orgID != nil {
+		if search != "" {
+			agents, err = h.queries.ListAgentsWithFilterByOrg(r.Context(), *orgID, &search)
+		} else {
+			agents, err = h.queries.ListAgentsByOrg(r.Context(), *orgID)
+		}
 	} else {
-		agents, err = h.queries.ListAgents(r.Context())
+		if search != "" {
+			agents, err = h.queries.ListAgentsWithFilter(r.Context(), &search)
+		} else {
+			agents, err = h.queries.ListAgents(r.Context())
+		}
 	}
 
 	if err != nil {
@@ -194,7 +205,7 @@ func (h *Handlers) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	var req CreateAgentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		respondError(w, NewErrorWithContext(http.StatusBadRequest, "request body parsing error", err, requestID, r.URL.Path, r.Method, "agent", "", nil))
 		return
 	}
@@ -279,7 +290,7 @@ func (h *Handlers) CreateSession(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	var req CreateSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		respondError(w, NewErrorWithContext(http.StatusBadRequest, "request body parsing error", err, requestID, r.URL.Path, r.Method, "session", "", nil))
 		return
 	}
@@ -298,7 +309,9 @@ func (h *Handlers) CreateSession(w http.ResponseWriter, r *http.Request) {
 	if req.Metadata == nil {
 		metadata = make(db.JSONBMap)
 	}
+	orgID, _ := auth.GetOrgIDFromContext(r.Context())
 	session := &db.Session{
+		OrgID:          orgID,
 		AgentID:        req.AgentID,
 		ExternalUserID: req.ExternalUserID,
 		Metadata:       metadata,
@@ -460,7 +473,7 @@ func (h *Handlers) UpdateSession(w http.ResponseWriter, r *http.Request) {
 		Metadata       map[string]interface{} `json:"metadata"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		respondError(w, NewErrorWithContext(http.StatusBadRequest, "request body parsing error", err, requestID, r.URL.Path, r.Method, "session", "", nil))
 		return
 	}
@@ -545,7 +558,7 @@ func (h *Handlers) SendMessage(w http.ResponseWriter, r *http.Request) {
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	var req SendMessageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		respondError(w, NewErrorWithContext(http.StatusBadRequest, "request body parsing error", err, requestID, r.URL.Path, r.Method, "message", "", nil))
 		return
 	}
@@ -732,7 +745,7 @@ func (h *Handlers) UpdateMessage(w http.ResponseWriter, r *http.Request) {
 		Metadata map[string]interface{} `json:"metadata"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		requestID := GetRequestID(r.Context())
 		respondError(w, WrapError(ErrBadRequest, requestID))
 		return
@@ -840,12 +853,25 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 }
 
 func respondError(w http.ResponseWriter, err *APIError) {
-	response := ErrorResponse{
-		Error: err.Message,
-		Code:  err.Code,
-	}
+	msg := err.Message
 	if err.Err != nil {
-		response.Message = err.Err.Error()
+		msg = err.Err.Error()
+	}
+	if msg == "" {
+		msg = err.Message
+	}
+	response := ErrorResponse{
+		RequestID:  err.RequestID,
+		ErrorCode:  ErrorCodeFromHTTP(err.Code),
+		Message:    msg,
+		Details:    err.Details,
+		Retryable:  RetryableFromHTTP(err.Code),
+		DocsURL:    DefaultDocsURL + "#" + ErrorCodeFromHTTP(err.Code),
+		Code:       err.Code,
+		Error:      err.Message,
+	}
+	if response.Details == nil {
+		response.Details = make(map[string]interface{})
 	}
 	if err.RequestID != "" {
 		w.Header().Set("X-Request-ID", err.RequestID)

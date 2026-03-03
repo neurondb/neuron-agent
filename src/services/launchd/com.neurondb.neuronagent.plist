@@ -7,7 +7,7 @@
     
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/neuronagent</string>
+        <string>/usr/local/bin/neuron-agent</string>
     </array>
     
     <key>WorkingDirectory</key>
