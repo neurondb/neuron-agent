@@ -8,7 +8,7 @@ Thumbs.db
 *~
 
 # Go
-agent-server
+/agent-server
 src/bin/
 *.exe
 *.test
