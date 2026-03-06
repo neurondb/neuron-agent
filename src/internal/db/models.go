@@ -81,6 +81,7 @@ type Tool struct {
 	Name          string    `db:"name"`
 	Description   string    `db:"description"`
 	ArgSchema     JSONBMap  `db:"arg_schema"`
+	ResultSchema  JSONBMap  `db:"result_schema"`
 	HandlerType   string    `db:"handler_type"`
 	HandlerConfig JSONBMap  `db:"handler_config"`
 	Enabled       bool      `db:"enabled"`
@@ -237,4 +238,109 @@ type AgentSpecialization struct {
 	Config             JSONBMap   `db:"config"`
 	CreatedAt          time.Time  `db:"created_at"`
 	UpdatedAt          time.Time  `db:"updated_at"`
+}
+
+/* AgentRun is the first-class record of a complete agent execution (state machine). */
+type AgentRun struct {
+	ID               uuid.UUID   `db:"id"`
+	AgentID          uuid.UUID   `db:"agent_id"`
+	SessionID        uuid.UUID   `db:"session_id"`
+	TaskInput        string      `db:"task_input"`
+	TaskMetadata     JSONBMap    `db:"task_metadata"`
+	State            string      `db:"state"`
+	PlanID           *uuid.UUID  `db:"plan_id"`
+	CurrentStepIndex int         `db:"current_step_index"`
+	TotalSteps       *int        `db:"total_steps"`
+	RetryCount       int         `db:"retry_count"`
+	FinalAnswer      *string     `db:"final_answer"`
+	ErrorClass       *string     `db:"error_class"`
+	ErrorDetail      JSONBMap    `db:"error_detail"`
+	TokensUsed       JSONBMap    `db:"tokens_used"`
+	CostEstimate     *float64    `db:"cost_estimate"`
+	StartedAt        *time.Time  `db:"started_at"`
+	CompletedAt      *time.Time  `db:"completed_at"`
+	CreatedAt        time.Time   `db:"created_at"`
+	UpdatedAt        time.Time   `db:"updated_at"`
+	OrgID            *uuid.UUID  `db:"org_id"`
+	Checkpoint       JSONBMap    `db:"checkpoint"`
+}
+
+/* AgentPlan holds a structured plan for a run. */
+type AgentPlan struct {
+	ID        uuid.UUID  `db:"id"`
+	RunID     uuid.UUID  `db:"run_id"`
+	Version   int        `db:"version"`
+	Steps     JSONBArray `db:"steps"`
+	Reasoning *string    `db:"reasoning"`
+	IsActive  bool       `db:"is_active"`
+	CreatedAt time.Time  `db:"created_at"`
+}
+
+/* AgentStep is one step execution within a run. */
+type AgentStep struct {
+	ID           uuid.UUID  `db:"id"`
+	RunID        uuid.UUID  `db:"run_id"`
+	StepIndex    int        `db:"step_index"`
+	PlanStepRef  *int       `db:"plan_step_ref"`
+	State        string     `db:"state"`
+	ActionType   string     `db:"action_type"`
+	ActionInput  JSONBMap   `db:"action_input"`
+	ActionOutput JSONBMap   `db:"action_output"`
+	Evaluation   JSONBMap   `db:"evaluation"`
+	DurationMs   *int       `db:"duration_ms"`
+	RetryCount   int        `db:"retry_count"`
+	CreatedAt    time.Time  `db:"created_at"`
+	CompletedAt  *time.Time `db:"completed_at"`
+}
+
+/* RunToolInvocation records a single tool call within a run/step. */
+type RunToolInvocation struct {
+	ID             uuid.UUID   `db:"id"`
+	RunID          *uuid.UUID  `db:"run_id"`
+	StepID         *uuid.UUID  `db:"step_id"`
+	ToolName       string      `db:"tool_name"`
+	ToolVersion    *int        `db:"tool_version"`
+	InputArgs      JSONBMap    `db:"input_args"`
+	InputValid     *bool       `db:"input_valid"`
+	OutputResult   JSONBMap    `db:"output_result"`
+	OutputValid    *bool       `db:"output_valid"`
+	Status         string      `db:"status"`
+	ErrorCode      *string     `db:"error_code"`
+	ErrorMessage   *string     `db:"error_message"`
+	Retryable      *bool       `db:"retryable"`
+	IdempotencyKey *string     `db:"idempotency_key"`
+	DurationMs     *int        `db:"duration_ms"`
+	CreatedAt      time.Time   `db:"created_at"`
+}
+
+/* ModelCall records one LLM invocation. */
+type ModelCall struct {
+	ID                uuid.UUID  `db:"id"`
+	RunID             *uuid.UUID `db:"run_id"`
+	StepID            *uuid.UUID `db:"step_id"`
+	ModelName         string     `db:"model_name"`
+	ModelProvider     *string    `db:"model_provider"`
+	PromptHash        *string    `db:"prompt_hash"`
+	PromptSections    JSONBMap   `db:"prompt_sections"`
+	PromptTokens      *int       `db:"prompt_tokens"`
+	CompletionTokens  *int       `db:"completion_tokens"`
+	TotalTokens       *int       `db:"total_tokens"`
+	CostEstimate      *float64   `db:"cost_estimate"`
+	LatencyMs         *int       `db:"latency_ms"`
+	FinishReason      *string    `db:"finish_reason"`
+	RoutingReason     *string    `db:"routing_reason"`
+	CreatedAt         time.Time  `db:"created_at"`
+}
+
+/* ExecutionTrace is one state transition in the runtime FSM. */
+type ExecutionTrace struct {
+	ID         int64      `db:"id"`
+	RunID      uuid.UUID  `db:"run_id"`
+	StepID     *uuid.UUID `db:"step_id"`
+	FromState  *string    `db:"from_state"`
+	ToState    string     `db:"to_state"`
+	Trigger    *string    `db:"trigger"`
+	Metadata   JSONBMap   `db:"metadata"`
+	DurationMs *int       `db:"duration_ms"`
+	CreatedAt  time.Time  `db:"created_at"`
 }

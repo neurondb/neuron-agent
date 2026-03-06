@@ -79,3 +79,40 @@ func FromMap(m map[string]interface{}) JSONBMap {
 	}
 	return JSONBMap(m)
 }
+
+/* JSONBArray is for scanning/valuing JSONB array columns */
+type JSONBArray []interface{}
+
+/* Scan implements sql.Scanner for JSONBArray */
+func (a *JSONBArray) Scan(value interface{}) error {
+	*a = nil
+	if value == nil {
+		return nil
+	}
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return nil
+	}
+	if len(bytes) == 0 || string(bytes) == "[]" || string(bytes) == "null" {
+		return nil
+	}
+	var arr []interface{}
+	if err := json.Unmarshal(bytes, &arr); err != nil {
+		return nil
+	}
+	*a = arr
+	return nil
+}
+
+/* Value implements driver.Valuer for JSONBArray */
+func (a JSONBArray) Value() (driver.Value, error) {
+	if a == nil || len(a) == 0 {
+		return "[]", nil
+	}
+	return json.Marshal(a)
+}
