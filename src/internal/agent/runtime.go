@@ -50,8 +50,11 @@ type Runtime struct {
 	llm                 *LLMClient
 	tools               ToolRegistry
 	embed               *neurondb.EmbeddingClient
+	ragClient           *neurondb.RAGClient
+	hybridClient        *neurondb.HybridSearchClient
 	toolPermChecker     *auth.ToolPermissionChecker
 	deterministicMode   bool
+	useStateMachine     bool /* when true, Execute() uses the state machine and persists run */
 	coordinator         interface{} /* Distributed coordinator interface */
 	/* Memory management components */
 	corruptionDetector  *MemoryCorruptionDetector
@@ -78,7 +81,15 @@ type ExecutionState struct {
 	ToolResults []ToolResult
 	FinalAnswer string
 	TokensUsed  int
+	Citations   []Citation
 	Error       error
+}
+
+/* Citation is a single source citation from knowledge retrieval */
+type Citation struct {
+	SourceID string  `json:"source_id"`
+	Chunk    string  `json:"chunk"`
+	Score    float64 `json:"score"`
 }
 
 type LLMResponse struct {
@@ -111,7 +122,7 @@ type ToolRegistry interface {
 	Execute(ctx context.Context, tool *db.Tool, args map[string]interface{}) (string, error)
 }
 
-func NewRuntime(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient *neurondb.EmbeddingClient) *Runtime {
+func NewRuntime(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient *neurondb.EmbeddingClient, ragClient *neurondb.RAGClient, hybridClient *neurondb.HybridSearchClient) *Runtime {
 	llm := NewLLMClient(db)
 	memory := NewMemoryManager(db, queries, embedClient)
 	hierMemory := NewHierarchicalMemoryManager(db, queries, embedClient)
@@ -142,6 +153,8 @@ func NewRuntime(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient 
 		llm:                 llm,
 		tools:               tools,
 		embed:               embedClient,
+		ragClient:           ragClient,
+		hybridClient:        hybridClient,
 		toolPermChecker:     auth.NewToolPermissionChecker(queries),
 		corruptionDetector:  corruptionDetector,
 		forgettingManager:   forgettingManager,
@@ -159,8 +172,8 @@ func NewRuntime(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient 
 }
 
 /* NewRuntimeWithFeatures creates runtime with all advanced features */
-func NewRuntimeWithFeatures(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient *neurondb.EmbeddingClient, vfs *VirtualFileSystem, workspace interface{}) *Runtime {
-	runtime := NewRuntime(db, queries, tools, embedClient)
+func NewRuntimeWithFeatures(db *db.DB, queries *db.Queries, tools ToolRegistry, embedClient *neurondb.EmbeddingClient, ragClient *neurondb.RAGClient, hybridClient *neurondb.HybridSearchClient, vfs *VirtualFileSystem, workspace interface{}) *Runtime {
+	runtime := NewRuntime(db, queries, tools, embedClient, ragClient, hybridClient)
 
 	/* Set VFS if provided */
 	if vfs != nil {
@@ -185,7 +198,33 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 			sessionID.String(), len(userMessage))
 	}
 
-	/* Check if distributed coordinator is enabled and route accordingly */
+	/* Optional: use state machine path (creates agent_run, persists steps/traces, always-plan) */
+	if r.useStateMachine {
+		run, err := r.StartRun(ctx, sessionID, userMessage, nil)
+		if err != nil {
+			return nil, err
+		}
+		state := &ExecutionState{SessionID: sessionID, AgentID: run.AgentID, UserMessage: userMessage}
+		if run.FinalAnswer != nil {
+			state.FinalAnswer = *run.FinalAnswer
+		}
+		if run.ErrorClass != nil {
+			state.Error = fmt.Errorf("run %s: %s", run.State, *run.ErrorClass)
+		}
+		if run.TokensUsed != nil {
+			if total, ok := run.TokensUsed["total"].(float64); ok {
+				state.TokensUsed = int(total)
+			}
+		}
+		/* Persist conversation for backward compatibility */
+		session, _ := r.queries.GetSession(ctx, sessionID)
+		if session != nil {
+			_ = r.storeMessages(ctx, sessionID, userMessage, state.FinalAnswer, nil, nil, state.TokensUsed)
+		}
+		return state, nil
+	}
+
+	/* Legacy linear pipeline */
 	if r.coordinator != nil {
 		if coordinator, ok := r.coordinator.(interface {
 			IsEnabled() bool
@@ -321,6 +360,59 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 	}
 
 	state.Context = agentContext
+
+	/* Knowledge retrieval: if agent has a knowledge table, retrieve relevant chunks and add to context */
+	if r.ragClient != nil && r.embed != nil && agent.Config != nil {
+		if tableName, ok := agent.Config["knowledge_table"].(string); ok && tableName != "" {
+			queryEmbedding, err := r.embed.Embed(ctx, userMessage, "default")
+			if err == nil {
+				var chunks []neurondb.RAGContext
+				if r.hybridClient != nil {
+					params := map[string]interface{}{"vector_weight": 0.7}
+					hybridResults, errH := r.hybridClient.HybridSearch(ctx, userMessage, queryEmbedding, tableName, "embedding", "content", 10, params)
+					if errH == nil {
+						for _, hr := range hybridResults {
+							meta := hr.Metadata
+							if meta == nil {
+								meta = make(map[string]interface{})
+							}
+							chunks = append(chunks, neurondb.RAGContext{
+								Content:    hr.Content,
+								Similarity: hr.CombinedScore,
+								Metadata:   meta,
+							})
+						}
+					}
+				}
+				if len(chunks) == 0 && r.ragClient != nil {
+					chunks, err = r.ragClient.RetrieveContext(ctx, queryEmbedding, tableName, "embedding", 10)
+					if err != nil {
+						chunks = nil
+					}
+				}
+				if len(chunks) > 0 {
+					for _, c := range chunks {
+						agentContext.MemoryChunks = append(agentContext.MemoryChunks, MemoryChunk{
+							Content:    c.Content,
+							Similarity: c.Similarity,
+							Metadata:   c.Metadata,
+						})
+						sourceID := ""
+						if c.Metadata != nil {
+							if sid, ok := c.Metadata["source_id"].(string); ok {
+								sourceID = sid
+							}
+						}
+						state.Citations = append(state.Citations, Citation{
+							SourceID: sourceID,
+							Chunk:    c.Content,
+							Score:    c.Similarity,
+						})
+					}
+				}
+			}
+		}
+	}
 
 	/* Step 3: Get personalization context */
 	var personalizationCtx *PersonalizationContext
@@ -537,6 +629,30 @@ func (r *Runtime) Execute(ctx context.Context, sessionID uuid.UUID, userMessage 
 	}
 
 	return state, nil
+}
+
+/* StartRun creates an agent run record and executes it via the state machine (always-plan path). */
+func (r *Runtime) StartRun(ctx context.Context, sessionID uuid.UUID, taskInput string, taskMetadata map[string]interface{}) (*db.AgentRun, error) {
+	if taskInput == "" {
+		return nil, fmt.Errorf("agent run failed: task_input_empty=true")
+	}
+	session, err := r.queries.GetSession(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("agent run failed: get_session: %w", err)
+	}
+	run := &db.AgentRun{
+		AgentID:     session.AgentID,
+		SessionID:   sessionID,
+		TaskInput:   taskInput,
+		TaskMetadata: db.FromMap(taskMetadata),
+		State:       StateCreated,
+		OrgID:       session.OrgID,
+	}
+	if err := r.queries.CreateAgentRun(ctx, run); err != nil {
+		return nil, fmt.Errorf("agent run failed: create_run: %w", err)
+	}
+	sm := NewStateMachine(r)
+	return sm.Run(ctx, run.ID)
 }
 
 func (r *Runtime) executeTools(ctx context.Context, agent *db.Agent, toolCalls []ToolCall, sessionID uuid.UUID) ([]ToolResult, error) {
@@ -888,9 +1004,24 @@ func (r *Runtime) GetLLMClient() *LLMClient {
 	return r.llm
 }
 
+/* SetUseStateMachine sets whether Execute() should use the state machine (create run, persist steps/traces). */
+func (r *Runtime) SetUseStateMachine(use bool) {
+	r.useStateMachine = use
+}
+
+/* UseStateMachine returns whether Execute() uses the state machine. */
+func (r *Runtime) UseStateMachine() bool {
+	return r.useStateMachine
+}
+
 /* GetEmbeddingClient returns the embedding client */
 func (r *Runtime) GetEmbeddingClient() *neurondb.EmbeddingClient {
 	return r.embed
+}
+
+/* GetQueries returns the database queries (for state machine and run persistence) */
+func (r *Runtime) GetQueries() *db.Queries {
+	return r.queries
 }
 
 /* SetAsyncExecutor sets the async task executor */
