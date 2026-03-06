@@ -97,7 +97,7 @@ func main() {
 	neurondbClient := neurondb.NewClient(database.DB)
 	embedClient := neurondbClient.Embedding
 	toolRegistry := tools.NewRegistryWithNeuronDB(queries, database, neurondbClient)
-	runtime := agent.NewRuntime(database, queries, toolRegistry, embedClient)
+	runtime := agent.NewRuntime(database, queries, toolRegistry, embedClient, nil, nil)
 	evaluator := eval.NewEvaluator(queries, runtime)
 
 	/* Create eval run */
