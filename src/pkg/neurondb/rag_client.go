@@ -18,10 +18,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
+
+/* hubKnowledgeTableRegex restricts knowledge table names to hub_knowledge_<uuid_with_underscores> */
+var hubKnowledgeTableRegex = regexp.MustCompile(`^hub_knowledge_[a-f0-9_]+$`)
 
 /* RAGClient handles RAG pipeline operations via NeuronDB */
 type RAGClient struct {
@@ -31,6 +35,39 @@ type RAGClient struct {
 /* NewRAGClient creates a new RAG client */
 func NewRAGClient(db *sqlx.DB) *RAGClient {
 	return &RAGClient{db: db}
+}
+
+/* EnsureKnowledgeTable creates the knowledge table and HNSW index if they do not exist.
+ * tableName must match hub_knowledge_[a-f0-9_]+ (e.g. hub_knowledge_<uuid with dashes replaced by underscores>).
+ */
+func (c *RAGClient) EnsureKnowledgeTable(ctx context.Context, tableName string) error {
+	tableName = strings.TrimSpace(tableName)
+	if !hubKnowledgeTableRegex.MatchString(tableName) {
+		return fmt.Errorf("invalid knowledge table name: must match hub_knowledge_[a-f0-9_]+")
+	}
+	escaped := EscapeSQLIdentifier(tableName)
+	createTable := fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (
+			id BIGSERIAL PRIMARY KEY,
+			content TEXT NOT NULL,
+			embedding vector,
+			metadata JSONB DEFAULT '{}'::jsonb,
+			created_at TIMESTAMPTZ DEFAULT now()
+		)`, escaped)
+	if _, err := c.db.ExecContext(ctx, createTable); err != nil {
+		return fmt.Errorf("create knowledge table failed: %w", err)
+	}
+	indexName := tableName + "_hnsw"
+	if len(indexName) > 63 {
+		indexName = tableName[:63-5] + "_hnsw"
+	}
+	createIndex := fmt.Sprintf(
+		`CREATE INDEX IF NOT EXISTS %s ON %s USING hnsw (embedding vector_cosine_ops)`,
+		EscapeSQLIdentifier(indexName), escaped)
+	if _, err := c.db.ExecContext(ctx, createIndex); err != nil {
+		return fmt.Errorf("create HNSW index failed: %w", err)
+	}
+	return nil
 }
 
 /* ChunkDocument chunks a document into smaller pieces */
