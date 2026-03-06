@@ -30,3 +30,24 @@ type ExecutionResult struct {
 	Output string
 	Error  error
 }
+
+/* ToolResultEnvelope is the structured return value for tool execution (status, data, error, metadata). */
+type ToolResultEnvelope struct {
+	Status   string                 `json:"status"` /* "success" | "error" */
+	Data     interface{}            `json:"data,omitempty"`
+	Error    *ToolResultError       `json:"error,omitempty"`
+	Metadata *ToolResultMetadata   `json:"metadata,omitempty"`
+}
+
+/* ToolResultError is the error part of the envelope */
+type ToolResultError struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+/* ToolResultMetadata holds duration and idempotency key */
+type ToolResultMetadata struct {
+	DurationMs     int    `json:"duration_ms,omitempty"`
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
+}

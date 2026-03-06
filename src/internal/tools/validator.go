@@ -474,3 +474,11 @@ func validateFormat(str, format string) error {
 	}
 	return nil
 }
+
+/* ValidateOutput validates tool output (e.g. the "data" field) against a JSON Schema. */
+func ValidateOutput(data map[string]interface{}, schema map[string]interface{}) error {
+	if schema == nil || len(schema) == 0 {
+		return nil
+	}
+	return ValidateArgs(data, schema)
+}

@@ -15,6 +15,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -329,11 +330,36 @@ func (r *Registry) ExecuteTool(ctx context.Context, tool *db.Tool, args map[stri
 	var result string
 	var err error
 	cb := r.getOrCreateCircuitBreaker(tool.Name)
+	startExec := time.Now()
 	err = cb.Execute(execCtx, func() error {
 		var runErr error
 		result, runErr = handler.Execute(execCtx, tool, args)
 		return runErr
 	})
+	execDurMs := int(time.Since(startExec).Milliseconds())
+
+	/* Optional: normalize result to envelope and validate output when result_schema is set */
+	if err == nil && tool.ResultSchema != nil && len(tool.ResultSchema) > 0 {
+		var dataMap map[string]interface{}
+		if parseErr := json.Unmarshal([]byte(result), &dataMap); parseErr == nil {
+			if validateErr := ValidateOutput(dataMap, tool.ResultSchema); validateErr != nil {
+				return "", fmt.Errorf("tool output validation failed: tool_name='%s', error=%w", tool.Name, validateErr)
+			}
+		}
+		envelope := ToolResultEnvelope{
+			Status:   "success",
+			Data:     result,
+			Metadata: &ToolResultMetadata{DurationMs: execDurMs},
+		}
+		if dataMap != nil {
+			envelope.Data = dataMap
+		}
+		envBytes, marshalErr := json.Marshal(envelope)
+		if marshalErr != nil {
+			return result, nil /* fallback to raw result */
+		}
+		result = string(envBytes)
+	}
 
 	/* Audit log tool execution */
 	agentID, agentOK := GetAgentIDFromContext(ctx)
@@ -445,6 +471,16 @@ func (r *Registry) ListClawTools() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+/* SyncFromMCP discovers tools from an MCP server and upserts them into neurondb_agent.tools.
+ * Expected: call MCP tools/list at mcpServerURL, then for each tool upsert into tools with
+ * handler_type = 'mcp', handler_config = { mcp_server_url, tool_name }, and schema from MCP.
+ * Tool versioning (tool_versions table) can be updated when schema changes.
+ * This is a stub that returns nil until MCP client is integrated. */
+func (r *Registry) SyncFromMCP(ctx context.Context, mcpServerURL string) error {
+	_ = mcpServerURL
+	return nil
 }
 
 /* ExecuteByHandlerType runs a tool by handler type name with the given args (for Claw gateway). */
