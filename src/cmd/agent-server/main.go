@@ -36,6 +36,7 @@ import (
 	"github.com/neurondb/NeuronAgent/internal/tools"
 	"github.com/neurondb/NeuronAgent/internal/workflow"
 	"github.com/neurondb/NeuronAgent/pkg/llm_sql"
+	"github.com/neurondb/NeuronAgent/pkg/neurondb"
 )
 
 var (
@@ -85,7 +86,16 @@ func main() {
 		registry.RegisterHandler(name, handler)
 	}
 
-	runtime := agent.NewRuntime(app.DB(), app.Queries(), registry, nil)
+	var embedClient *neurondb.EmbeddingClient
+	var ragClient *neurondb.RAGClient
+	var hybridClient *neurondb.HybridSearchClient
+	if app.DB() != nil && app.DB().DB != nil {
+		ndbClient := neurondb.NewClient(app.DB().DB)
+		embedClient = ndbClient.Embedding
+		ragClient = ndbClient.RAG
+		hybridClient = ndbClient.HybridSearch
+	}
+	runtime := agent.NewRuntime(app.DB(), app.Queries(), registry, embedClient, ragClient, hybridClient)
 	handlers := api.NewHandlers(app.Queries(), runtime)
 
 	/* Workflow engine with audit and tool registry */
@@ -107,11 +117,17 @@ func main() {
 	modelClient := llm_sql.NewModelClient(llmBaseURL, llmAPIKey)
 	sqlLlmHandlers := api.NewSQLLLMHandlers(modelClient)
 
+	/* RAG handlers (ingest, query, etc.) — require NeuronDB-backed DB */
+	var ragHandlers *api.RAGHandlers
+	if ragClient != nil {
+		ragHandlers = api.NewRAGHandlers(app.Queries(), nil, ragClient, nil, nil, nil)
+	}
+
 	keyManager := auth.NewAPIKeyManager(app.Queries())
 	principalManager := auth.NewPrincipalManager(app.Queries())
 	rateLimiter := auth.NewRateLimiter()
 
-	router := buildRouter(cfg, handlers, sqlLlmHandlers, app, keyManager, principalManager, rateLimiter, registry, workflowHandlers)
+	router := buildRouter(cfg, handlers, sqlLlmHandlers, app, keyManager, principalManager, rateLimiter, registry, workflowHandlers, ragHandlers, runtime)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
@@ -179,7 +195,7 @@ func loadConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
-func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers, app *core.App, keyManager *auth.APIKeyManager, principalManager *auth.PrincipalManager, rateLimiter auth.RateLimiterInterface, registry *tools.Registry, workflowHandlers *api.WorkflowHandlers) http.Handler {
+func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers, app *core.App, keyManager *auth.APIKeyManager, principalManager *auth.PrincipalManager, rateLimiter auth.RateLimiterInterface, registry *tools.Registry, workflowHandlers *api.WorkflowHandlers, ragHandlers *api.RAGHandlers, runtime *agent.Runtime) http.Handler {
 	r := mux.NewRouter()
 
 	adminHandlers := api.NewAdminHandlers(cfg, app)
@@ -190,6 +206,9 @@ func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}).Methods(http.MethodGet)
 	r.Handle("/metrics", metrics.Handler()).Methods(http.MethodGet)
+
+	/* WebSocket: stream agent responses (before middleware that might block upgrade) */
+	r.HandleFunc("/ws", api.HandleWebSocket(runtime, keyManager, cfg))
 
 	r.Use(api.RequestIDMiddleware)
 	r.Use(api.RequestTimeoutMiddleware(60 * time.Second))
@@ -221,6 +240,18 @@ func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers
 	v1.HandleFunc("/agents/{id}/memory", h.ListMemoryChunks).Methods(http.MethodGet)
 	v1.HandleFunc("/agents/{id}/memory/search", h.SearchMemory).Methods(http.MethodPost)
 	v1.HandleFunc("/agents/{id}/memory/summarize", h.SummarizeMemory).Methods(http.MethodPost)
+
+	/* Agent runs (state machine) */
+	v1.HandleFunc("/agents/{id}/runs", h.CreateRun).Methods(http.MethodPost)
+	v1.HandleFunc("/runs/{id}", h.GetRun).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/plan", h.GetRunPlan).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/steps", h.GetRunSteps).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/traces", h.GetRunTraces).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/cancel", h.CancelRun).Methods(http.MethodPost)
+	v1.HandleFunc("/runs/{id}/explain/tool/{inv_id}", h.ExplainTool).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/explain/memory", h.ExplainMemory).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/explain/model", h.ExplainModel).Methods(http.MethodGet)
+	v1.HandleFunc("/runs/{id}/explain/plan", h.ExplainPlan).Methods(http.MethodGet)
 
 	/* Sessions */
 	v1.HandleFunc("/sessions", h.CreateSession).Methods(http.MethodPost)
@@ -286,6 +317,11 @@ func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers
 	v1.HandleFunc("/llm/sql/debug", sqlLlm.DebugSQL).Methods(http.MethodPost)
 	v1.HandleFunc("/llm/sql/translate", sqlLlm.TranslateSQL).Methods(http.MethodPost)
 	v1.HandleFunc("/llm/sql/models", sqlLlm.ListModels).Methods(http.MethodGet)
+
+	/* RAG: ingest and query (when NeuronDB client is available) */
+	if ragHandlers != nil {
+		v1.HandleFunc("/rag/ingest", ragHandlers.RAGIngest).Methods(http.MethodPost)
+	}
 
 	/* Admin: config dump and diagnostics (admin RBAC) */
 	v1.HandleFunc("/admin/config", adminHandlers.GetAdminConfig).Methods(http.MethodGet)

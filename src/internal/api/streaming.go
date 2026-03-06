@@ -85,11 +85,15 @@ func StreamResponse(w http.ResponseWriter, r *http.Request, runtime *agent.Runti
 	}
 
 	/* Send completion */
-	sendSSE(w, flusher, "done", map[string]interface{}{
+	donePayload := map[string]interface{}{
 		"tokens_used":  state.TokensUsed,
 		"tool_calls":   state.ToolCalls,
 		"tool_results": state.ToolResults,
-	})
+	}
+	if len(state.Citations) > 0 {
+		donePayload["citations"] = state.Citations
+	}
+	sendSSE(w, flusher, "done", donePayload)
 }
 
 func sendSSE(w http.ResponseWriter, flusher http.Flusher, event string, data interface{}) {

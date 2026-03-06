@@ -594,6 +594,9 @@ func (h *Handlers) SendMessage(w http.ResponseWriter, r *http.Request) {
 		"tool_calls":   state.ToolCalls,
 		"tool_results": state.ToolResults,
 	}
+	if len(state.Citations) > 0 {
+		response["citations"] = state.Citations
+	}
 
 	respondJSON(w, http.StatusOK, response)
 }

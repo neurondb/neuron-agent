@@ -511,6 +511,11 @@ func (h *RAGHandlers) RAGIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.ragClient.EnsureKnowledgeTable(ctx, req.TableName); err != nil {
+		respondError(w, NewErrorWithContext(http.StatusBadRequest, "RAG ingest failed: table setup", err, requestID, endpoint, method, "rag", "", nil))
+		return
+	}
+
 	chunkIDs, err := h.ragClient.IngestDocument(ctx, req.DocumentText, req.TableName, req.TextCol, req.VectorCol, req.EmbeddingModel, req.ChunkSize, req.ChunkOverlap, req.Metadata)
 	if err != nil {
 		respondError(w, NewErrorWithContext(http.StatusInternalServerError, "RAG ingest failed", err, requestID, endpoint, method, "rag", "", nil))
