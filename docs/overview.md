@@ -30,14 +30,14 @@ NeuronAgent **depends on NeuronDB** (PostgreSQL with the NeuronDB extension). It
 
 | Area | Description | Status |
 |------|-------------|--------|
-| **Agent runtime** | State machine for autonomous task execution with persistent memory | ✅ Stable |
-| **REST API** | Full CRUD for agents, sessions, messages, tools, memory, workflows, plans, budgets, collaborations | ✅ Stable |
-| **WebSocket** | Real-time streaming of agent responses with event streaming | ✅ Stable |
-| **Tool system** | 18+ built-in tools; extensible via custom tool registration | ✅ Stable |
-| **Multi-agent** | Workspaces, agent-to-agent communication, task delegation, hierarchies | ✅ Stable |
-| **Workflow engine** | DAG execution with HITL, retries, idempotency, scheduling | ✅ Stable |
-| **Memory** | Hierarchical memory (working / episodic / semantic), HNSW search, promotion, feedback | ✅ Stable |
-| **Integration** | NeuronDB for embeddings, LLM, vector search, ML, RAG | ✅ Stable |
+| **Agent runtime** | State machine for autonomous task execution with persistent memory | Stable |
+| **REST API** | Full CRUD for agents, sessions, messages, tools, memory, workflows, plans, budgets, collaborations | Stable |
+| **WebSocket** | Real-time streaming of agent responses with event streaming | Stable |
+| **Tool system** | 18+ built-in tools; extensible via custom tool registration | Stable |
+| **Multi-agent** | Workspaces, agent-to-agent communication, task delegation, hierarchies | Stable |
+| **Workflow engine** | DAG execution with HITL, retries, idempotency, scheduling | Stable |
+| **Memory** | Hierarchical memory (working / episodic / semantic), HNSW search, promotion, feedback | Stable |
+| **Integration** | NeuronDB for embeddings, LLM, vector search, ML, RAG | Stable |
 
 ---
 

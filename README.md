@@ -7,12 +7,12 @@
 [![Go](https://img.shields.io/badge/Go-1.23+-00ADD8.svg)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue.svg)](https://www.postgresql.org/)
 [![Version](https://img.shields.io/badge/version-3.0.0--devel-blue.svg)](https://github.com/neurondb/neurondb)
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](../LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-neurondb.ai-brightgreen.svg)](https://www.neurondb.ai/docs/neuronagent)
 
 </div>
 
-## 📑 Table of Contents
+## Table of Contents
 
 <details>
 <summary><strong>Expand full table of contents</strong></summary>
@@ -53,68 +53,57 @@ NeuronAgent integrates with NeuronDB PostgreSQL extension to provide agent runti
 
 ### Key Capabilities
 
-- 🤖 **Autonomous Agents** - Build agents that can reason, plan, and execute complex tasks
-- 🧠 **Persistent Memory** - Long-term memory with vector search for context retrieval
-- 🔧 **Tool Execution** - 18+ built-in tools plus custom tool registration
-- 🔄 **Workflow Orchestration** - DAG-based workflows with human-in-the-loop support
-- 👥 **Multi-Agent Collaboration** - Agents can communicate and collaborate on tasks
-- 💰 **Cost Management** - Real-time budget tracking and cost controls
-- 📊 **Observability** - Prometheus metrics, structured logging, and distributed tracing
+- **Agents** — State machine, planning, tool execution, persistent memory
+- **Memory** — Hierarchical (STM/MTM/LPM), HNSW vector search, promotion, feedback
+- **Tools** — 16+ built-in tool types (SQL, HTTP, code, shell, browser, filesystem, memory, collaboration, etc.); NeuronDB tools (ML, vector, RAG) when NeuronDB client is configured. Custom tools from DB. See [FEATURES.md](FEATURES.md).
+- **Workflows** — DAG workflows with agent/tool/HTTP/SQL/approval steps, retries, scheduling
+- **Collaboration** — Workspaces, multi-agent, human-in-the-loop (approval gates, notifications)
+- **Cost** — Per-agent and per-session budgets, tracking, alerts
+- **API** — REST CRUD, WebSocket streaming, API key auth, RBAC
 
 ## Documentation
 
-**For comprehensive documentation, detailed tutorials, complete API references, and best practices, visit:**
+**[https://www.neurondb.ai/docs/neuronagent](https://www.neurondb.ai/docs/neuronagent)** — REST API reference, WebSocket guide, and deployment.
 
-🌐 **[https://www.neurondb.ai/docs/neuronagent](https://www.neurondb.ai/docs/neuronagent)**
+### Local documentation
 
-### Local Documentation
+- **[FEATURES.md](FEATURES.md)** — Accurate feature list (full / partial / not present)
+- **[API Reference](docs/api-reference.md)** — REST API and configuration
+- **[Troubleshooting](docs/troubleshooting.md)** — Common issues and fixes
+- **[Release checklist](docs/release_checklist.md)** — Release and rollback
 
-- **[Features](docs/features.md)** - Complete feature list and capabilities
-- **[API Reference](docs/api.md)** - Complete REST API documentation
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
-- **[Product gap report](docs/product_gap_report.txt)** - Enterprise readiness and backlog
-- **[Architecture v2](docs/architecture_v2.txt)** - Target architecture with NeuronSQL
-- **[Config env schema](docs/config_env_schema.txt)** - Environment variable reference
-- **[Release checklist](docs/release_checklist.md)** - Release and rollback steps
-
-The official documentation provides:
-- Complete REST API reference with examples
-- WebSocket integration guides
-- Agent configuration and profiles
-- Tool development and registration
-- Production deployment guides
-- Performance optimization tips
+Optional references (when present): `docs/product_gap_report.txt`, `docs/config_env_schema.txt`, `docs/workflow_templates/README.md`.
 
 ## Features
 
 <details>
-<summary><strong>📊 Complete Feature List</strong></summary>
+<summary><strong>Complete Feature List</strong></summary>
 
 | Feature | Description | Status |
 |:--------|:------------|:-------|
-| **Agent Runtime** | Complete state machine for autonomous task execution with persistent memory | ✅ Stable |
-| **Multi-Agent Collaboration** | Agent-to-agent communication, task delegation, shared workspaces, and hierarchical agent structures | ✅ Stable |
-| **Workflow Engine** | DAG-based workflow execution with agent, tool, HTTP, approval, and conditional steps | ✅ Stable |
-| **Human-in-the-Loop (HITL)** | Approval gates, feedback loops, and human oversight in workflows with email/webhook notifications | ✅ Stable |
-| **Hierarchical Memory** | Multi-level memory organization with HNSW-based vector search for better context retrieval | ✅ Stable |
-| **Long-term Memory** | HNSW-based vector search for context retrieval with memory promotion | ✅ Stable |
-| **Agentic RAG** | Intelligent retrieval where agent decides when and where to retrieve information | ✅ Stable |
-| **Agent Memory** | Read/write memory with learning from interactions and personalization | ✅ Stable |
-| **Memory Feedback** | User feedback system to improve memory quality over time | ✅ Stable |
-| **Adaptive Memory** | Usage-based importance adjustment, consolidation, and compression | ✅ Stable |
-| **Cross-Session Memory** | Share memories across sessions with automatic relevance detection | ✅ Stable |
-| **Planning & Reflection** | LLM-based planning with task decomposition, agent self-reflection, and quality assessment | ✅ Stable |
-| **Evaluation Framework** | Built-in evaluation system for agent performance with automated quality scoring | ✅ Stable |
-| **Budget & Cost Management** | Real-time cost tracking, per-agent and per-session budget controls, and budget alerts | ✅ Stable |
-| **Tool System** | 18+ tools: SQL, HTTP, Code, Shell, Browser, Visualization, Filesystem, Memory, Collaboration, NeuronDB tools (ML, Vector, RAG, Hybrid Search, Reranking, Analytics), Multimodal, Web Search, Retrieval | ✅ Stable |
-| **REST API** | Full CRUD API for agents, sessions, messages, workflows, plans, budgets, and collaborations | ✅ Stable |
-| **WebSocket Support** | Streaming agent responses in real-time with event streaming | ✅ Stable |
-| **Authentication & Security** | API key-based authentication with bcrypt hashing, RBAC, fine-grained permissions, and audit logging | ✅ Stable |
-| **Background Jobs** | PostgreSQL-based job queue with worker pool, async task execution, and memory promotion | ✅ Stable |
-| **Observability** | Prometheus metrics, structured logging, distributed tracing, and debugging tools | ✅ Stable |
-| **NeuronDB Integration** | Direct integration with NeuronDB embedding, LLM, vector search, and ML functions | ✅ Stable |
-| **Virtual Filesystem** | Isolated filesystem for agents with secure file operations | ✅ Stable |
-| **Versioning & History** | Version control for agents, execution replay, and state snapshots | ✅ Stable |
+| **Agent Runtime** | Complete state machine for autonomous task execution with persistent memory | Stable |
+| **Multi-Agent Collaboration** | Agent-to-agent communication, task delegation, shared workspaces, and hierarchical agent structures | Stable |
+| **Workflow Engine** | DAG-based workflow execution with agent, tool, HTTP, approval, and conditional steps | Stable |
+| **Human-in-the-Loop (HITL)** | Approval gates, feedback loops, and human oversight in workflows with email/webhook notifications | Stable |
+| **Hierarchical Memory** | Multi-level memory organization with HNSW-based vector search for better context retrieval | Stable |
+| **Long-term Memory** | HNSW-based vector search for context retrieval with memory promotion | Stable |
+| **Agentic RAG** | Intelligent retrieval where agent decides when and where to retrieve information | Stable |
+| **Agent Memory** | Read/write memory with learning from interactions and personalization | Stable |
+| **Memory Feedback** | User feedback system to improve memory quality over time | Stable |
+| **Adaptive Memory** | Usage-based importance adjustment, consolidation, and compression | Stable |
+| **Cross-Session Memory** | Share memories across sessions with automatic relevance detection | Stable |
+| **Planning & Reflection** | LLM-based planning with task decomposition, agent self-reflection, and quality assessment | Stable |
+| **Evaluation Framework** | Built-in evaluation system for agent performance with automated quality scoring | Stable |
+| **Budget & Cost Management** | Real-time cost tracking, per-agent and per-session budget controls, and budget alerts | Stable |
+| **Tool System** | 16+ built-in tool types (SQL, HTTP, code, shell, browser, filesystem, memory, collaboration, multimodal, web search). NeuronDB tools (ML, vector, RAG, etc.) when client configured. Custom tools from DB. See [FEATURES.md](FEATURES.md). | Stable |
+| **REST API** | Full CRUD API for agents, sessions, messages, workflows, plans, budgets, and collaborations | Stable |
+| **WebSocket Support** | Streaming agent responses in real-time with event streaming | Stable |
+| **Authentication & Security** | API key-based authentication with bcrypt hashing, RBAC, fine-grained permissions, and audit logging | Stable |
+| **Background Jobs** | PostgreSQL-based job queue with worker pool, async task execution, and memory promotion | Stable |
+| **Observability** | Prometheus metrics, structured logging, distributed tracing, and debugging tools | Stable |
+| **NeuronDB Integration** | Direct integration with NeuronDB embedding, LLM, vector search, and ML functions | Stable |
+| **Virtual Filesystem** | Isolated filesystem for agents with secure file operations | Stable |
+| **Versioning & History** | Version control for agents, execution replay, and state snapshots | Stable |
 
 </details>
 
@@ -148,7 +137,7 @@ graph TB
         VECTOR[Vector Search<br/>HNSW Indexes]
         EMBED[Embeddings<br/>Text/Image/Multimodal]
         LLM[LLM Integration<br/>OpenAI/Anthropic]
-        ML[ML Functions<br/>52+ Algorithms]
+        ML[ML Functions<br/>25+ algorithm families]
     end
     
     REST --> STATE
@@ -246,14 +235,22 @@ graph TD
 
 ## Quick Start
 
+### Run checklist
+
+1. **Prerequisites:** PostgreSQL 16+ with NeuronDB extension, port 8080 free. Install NeuronDB first: [neurondb](https://github.com/neurondb/neurondb).
+2. **Database:** Run migrations: `psql -d neurondb -f sql/neuron-agent.sql` or `./scripts/neuronagent-migrate.sh` (run all SQL in `sql/`).
+3. **Config:** Set required env: `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. Optional: `DB_PORT`, `SERVER_PORT`, `CONFIG_PATH`. See table below.
+4. **Run:** `make build` then `./bin/neuron-agent`, or `go run ./src/cmd/agent-server/main.go`. Optional: `./scripts/neuronagent-setup.sh` for DB setup; `./scripts/neuronagent-run.sh` to run.
+5. **Verify:** `curl -s http://localhost:8080/health` → `{"status":"ok"}`. Generate an API key with `./scripts/neuronagent-generate-keys.sh` for `/api/v1/*`.
+
 ### Prerequisites
 
 <details>
-<summary><strong>📋 Prerequisites Checklist</strong></summary>
+<summary><strong>Prerequisites Checklist</strong></summary>
 
 - [ ] PostgreSQL 16 or later installed
 - [ ] NeuronDB extension installed and enabled
-- [ ] Go 1.23 or later (for building from source)
+- [ ] Go 1.24 or later (for building from source)
 - [ ] Port 8080 available (configurable)
 - [ ] API key generated (for authentication)
 
@@ -261,21 +258,13 @@ graph TD
 
 ### Database Setup
 
-**Option 1: Using Docker Compose (Recommended for Quick Start)**
+**Option 1: Using Docker Compose (recommended for quick start)**
 
-If using the root `docker-compose.yml`:
+If you have a PostgreSQL instance with NeuronDB (e.g. from the [neurondb](https://github.com/neurondb/neurondb) repo Docker setup):
+
 ```bash
-# From repository root
-docker compose up -d neurondb
-
-# Wait for service to be healthy
-docker compose ps neurondb
-
-# Create extension (if not already created)
-psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -c "CREATE EXTENSION IF NOT EXISTS neurondb;"
-
-# Run NeuronAgent migrations
-psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f neuron-agent/sql/neuron-agent.sql
+# From this repository root, run migrations against your database
+psql "postgresql://neurondb:neurondb@localhost:5433/neurondb" -f sql/neuron-agent.sql
 ```
 
 **Option 2: Native PostgreSQL Installation**
@@ -312,64 +301,70 @@ export DB_PASSWORD=neurondb
 export SERVER_PORT=8080
 ```
 
-See [API Reference](docs/api.md) for complete configuration options.
+See [API Reference](docs/api-reference.md) for complete configuration options.
 
 ### Run Service
 
-#### Automated Installation (Recommended)
+#### Automated Setup (recommended)
 
-Use the installation script for easy setup:
+Use the setup script:
 
 ```bash
 # From repository root
-sudo ./scripts/install-neuronagent.sh
+./scripts/neuronagent-setup.sh
 
-# With system service enabled
-sudo ./scripts/install-neuronagent.sh --enable-service
+# With system service enabled (if supported)
+./scripts/neuronagent-setup.sh --enable-service
+```
+
+To generate API keys:
+
+```bash
+./scripts/neuronagent-generate-keys.sh
 ```
 
 #### Manual Build and Run
 
-From source:
+From repository root:
 
 ```bash
-go run cmd/agent-server/main.go
+go run ./src/cmd/agent-server/main.go
 ```
 
 Or build and run:
 
 ```bash
 make build
-./bin/neuronagent
+./bin/neuron-agent
 ```
 
 #### Using Docker
 
-**Option 1: Root docker-compose.yml (Recommended)**
+**Option 1: Full stack (when running from neurondb repo)**
+
+If you are in a setup that uses the neurondb repository’s Docker Compose (which can include neuronagent):
+
 ```bash
-# From repository root
+docker compose up -d neurondb
 docker compose up -d neuronagent
-
-# Check status
 docker compose ps neuronagent
-
-# View logs
 docker compose logs -f neuronagent
 ```
 
-**Option 2: NeuronAgent-specific docker-compose**
+**Option 2: NeuronAgent Docker image (no compose in this repo)**
+
+Build and run the agent image. You must have a running PostgreSQL instance with NeuronDB (e.g. from the [neurondb](https://github.com/neurondb/neurondb) repo):
+
 ```bash
-cd docker
-# Optionally create .env file with your configuration
-# Or use environment variables directly (docker-compose.yml has defaults)
-docker compose up -d
+make docker-build
+docker run --rm -e DB_HOST=host.docker.internal -e DB_PORT=5433 -e DB_NAME=neurondb -e DB_USER=neurondb -e DB_PASSWORD=neurondb -p 8080:8080 neuronagent:latest
 ```
 
-See [Docker Guide](docker/README.md) for Docker deployment details.
+On Linux use the actual DB host (e.g. `-e DB_HOST=172.17.0.1` or the service name if on the same Docker network). For a full stack including Postgres and NeuronSQL, use `make docker-up` (runs `docker-compose.neuronsql.yml`) or the neurondb repository.
 
 #### Running as a Service
 
-For systemd (Linux) or launchd (macOS), see the [neurondb installation services guide](https://github.com/neurondb/neurondb/blob/main/docs/getting-started/installation-services.md) (in the neurondb repo).
+For systemd (Linux) or launchd (macOS), see your system documentation or the [neurondb installation services guide](https://github.com/neurondb/neurondb/blob/main/docs/getting-started/installation-services.md) for patterns.
 
 ### Verify Installation
 
@@ -443,7 +438,7 @@ curl -X POST http://localhost:8080/api/v1/agents \
 | `/api/v1/sessions/{id}/messages` | POST | Send message to agent |
 | `/ws` | WebSocket | Streaming agent responses |
 
-See [API Documentation](docs/api.md) for complete API reference.
+See [API Reference](docs/api-reference.md) for complete API reference.
 
 ## Configuration
 
@@ -463,9 +458,14 @@ See [API Documentation](docs/api.md) for complete API reference.
 | `SERVER_PORT` | `8080` | Server port |
 | `SERVER_READ_TIMEOUT` | `30s` | Read timeout |
 | `SERVER_WRITE_TIMEOUT` | `30s` | Write timeout |
+| `CONFIG_PATH` | - | Path to YAML config file (optional) |
+| `AUTH_API_KEY_HEADER` | - | Custom header name for API key (optional) |
+| `CORS_ALLOWED_ORIGINS` | - | Comma-separated origins for CORS |
 | `LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
 | `LOG_FORMAT` | `json` | Log format (json, text) |
-| `CONFIG_PATH` | - | Path to config.yaml file |
+| `MODULE_NEURONSQL_ENABLED` | - | Set to `true` to enable NeuronSQL module |
+
+Other optional env: `SERVER_READ_TIMEOUT`, `SERVER_WRITE_TIMEOUT`, `WEBSOCKET_ALLOWED_ORIGINS`, `DISTRIBUTED_*`, `CACHE_*`, `TOOLS_TIMEOUT`, `WORKFLOW_MAX_DURATION`. See [docs/api-reference.md](docs/api-reference.md) and config in `src/internal/config`.
 
 ### Configuration File
 
@@ -498,7 +498,7 @@ Environment variables override configuration file values.
 ## Usage Examples
 
 <details>
-<summary><strong>📝 Complete Usage Examples</strong></summary>
+<summary><strong>Complete Usage Examples</strong></summary>
 
 ### Create Agent
 
@@ -678,27 +678,25 @@ print(f"Message sent: {message['id']}")
 
 | Document | Description |
 |----------|-------------|
-| [API Reference](docs/api.md) | Complete REST API documentation |
+| [FEATURES.md](FEATURES.md) | Feature list (full / partial / not present) |
+| [API Reference](docs/api-reference.md) | REST API and configuration |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [src/cli/README.md](src/cli/README.md) | Command-line client (`neuronagent-cli`): build from `src/cli`, flags `--url`, `--key`, `--format`; subcommands for create, template, workflow, test, list, show, update, delete, clone, neuronsql |
 
 ## System Requirements
 
 | Component | Requirement |
 |-----------|-------------|
 | PostgreSQL | 16 or later |
-| NeuronDB Extension | Installed and enabled |
-| Go | 1.23 or later (for building) |
+| NeuronDB Extension | Installed and enabled ([install](https://github.com/neurondb/neurondb)) |
+| Go | 1.24 or later (for building) |
 | Network | Port 8080 available (configurable) |
+
+Related: [NeuronDB](https://github.com/neurondb/neurondb) (extension), [NeuronMCP](https://github.com/neurondb/neuron-mcp) (MCP server).
 
 ## Integration with NeuronDB
 
-NeuronAgent requires:
-
-- PostgreSQL database with NeuronDB extension installed
-- Database user with appropriate permissions
-- Access to NeuronDB vector search and embedding functions
-
-See [NeuronDB documentation](../neurondb/README.md) for installation instructions. For full-stack deployment with NeuronDB, NeuronHub, and NeuronMCP, see the [NeuronDB integration docs](../neurondb/docs/integration/) (architecture, deploy script, runbook, compatibility).
+NeuronAgent requires PostgreSQL 16+ with the NeuronDB extension. Install NeuronDB first: [neurondb repository](https://github.com/neurondb/neurondb) ([Simple Start](https://github.com/neurondb/neurondb/blob/main/docs/getting-started/simple-start.md)). Full-stack deployment (NeuronDB + NeuronAgent + NeuronMCP) is documented in each component’s repository.
 
 ## Security
 
@@ -708,7 +706,7 @@ See [NeuronDB documentation](../neurondb/README.md) for installation instruction
 - Supports TLS/SSL for encrypted connections
 - Non-root user in Docker containers
 
-See [API Reference](docs/api.md) for security and configuration details.
+See [API Reference](docs/api-reference.md) for security and configuration details.
 
 ## Troubleshooting
 
@@ -764,18 +762,14 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 ## Support
 
-- **Documentation**: [Component Documentation](../README.md)
-- **GitHub Issues**: [Report Issues](https://github.com/neurondb/NeurondB/issues)
+- **Documentation**: This README and the [docs](docs/) directory
+- **GitHub Issues**: [Report issues](https://github.com/neurondb/neurondb/issues)
 - **Email**: support@neurondb.ai
 
 ## License
 
-See [LICENSE](../LICENSE) file for license information.
+See [LICENSE](LICENSE) for license information.
 
 ---
 
-<div align="center">
-
-[⬆ Back to Top](#neuronagent)
-
-</div>
+[Back to top](#neuronagent)

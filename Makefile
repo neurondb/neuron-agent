@@ -73,15 +73,15 @@ docker-build:
 	@echo "Building Docker image..."
 	@docker build -t neuronagent:latest -f docker/Dockerfile .
 
-# Docker compose up
+# Docker compose: NeuronSQL stack (postgres + pglang + neuronagent). No standalone agent-only compose in repo; use docker-build + docker run for agent image, or neurondb repo for full stack.
 docker-up:
-	@echo "Starting Docker Compose..."
-	@docker-compose -f docker/docker-compose.yml up -d
+	@echo "Starting Docker Compose (NeuronSQL stack)..."
+	@docker-compose -f docker/docker-compose.neuronsql.yml up -d
 
 # Docker compose down
 docker-down:
 	@echo "Stopping Docker Compose..."
-	@docker-compose -f docker/docker-compose.yml down
+	@docker-compose -f docker/docker-compose.neuronsql.yml down
 
 # Install dependencies
 deps:

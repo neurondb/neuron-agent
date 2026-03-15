@@ -28,12 +28,12 @@ Commit messages must contain relevant information and follow these rules:
 
 **Module Prefix**
 
-Prefix the first line of the commit message with `NeuronAgent:` for this repository.
+Prefix the first line of the commit message with `NeuronAgent:` when contributing to this project.
 
 **Example**
 
 ```
-NeuronAgent: Improve embedding vector normalization logic.
+NeuronAgent: Issue (#1): Improve embedding vector normalization logic.
 
 This commit adjusts the normalization routine to
 use a more numerically stable approach, addressing

@@ -28,7 +28,7 @@ NeuronAgent is an AI agent runtime system that provides:
 3. **API Key**
    ```bash
    # Generate an API key
-   ./scripts/neuronagent_generate_keys.sh
+   ./scripts/neuronagent-generate-keys.sh
    
    # Or set environment variable
    export NEURONAGENT_API_KEY=your_api_key_here
@@ -64,13 +64,13 @@ python3 python_client.py
 NeuronAgent Python Client Examples
 ============================================================
 
-✅ Server is healthy
-📝 Creating agent...
-✅ Agent created: example-assistant
-💬 Creating session...
-✅ Session created: <session-id>
-💭 Sending message 1: Hello! Can you introduce yourself?...
-🤖 Agent response: Hello! I'm an AI assistant...
+Server is healthy
+Creating agent...
+Agent created: example-assistant
+Creating session...
+Session created: <session-id>
+Sending message 1: Hello! Can you introduce yourself?...
+Agent response: Hello! I'm an AI assistant...
 ```
 
 ### Go Client (`go_client.go`)
@@ -270,7 +270,7 @@ except requests.exceptions.HTTPError as e:
 
 ## API Reference
 
-See the [API Documentation](../docs/API.md) for complete API reference.
+See the [API documentation](api.md) for the complete API reference.
 
 ### Key Endpoints
 

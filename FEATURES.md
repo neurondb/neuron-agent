@@ -1,284 +1,108 @@
 # NeuronAgent Features
 
-NeuronAgent is a comprehensive AI agent runtime system with advanced capabilities for building autonomous agent applications.
+Capability matrix and feature reference for NeuronAgent.
 
-## Core Features
+| Status | Meaning |
+|--------|--------|
+| **Supported** | Feature is implemented and supported. |
+| **Partial** | Feature is implemented with limitations or schema-only (see section). |
+| **Not supported** | Feature is out of scope. |
 
-### Agent Runtime
-- **State Machine**: Complete state machine for autonomous task execution
-- **Persistent Memory**: Long-term memory with HNSW-based vector search
-- **Tool Execution**: Extensible tool registry with 16+ built-in tools
-- **Streaming Responses**: Real-time streaming via WebSocket
-- **Multi-Model Support**: Support for GPT-4, Claude, Gemini, Llama, and custom models
+---
 
-### Multi-Agent Collaboration
-- **Workspaces**: Create shared workspaces for agent collaboration
-- **Agent-to-Agent Communication**: Direct communication between agents
-- **Task Delegation**: Delegate tasks to specialized agents
-- **Hierarchical Structures**: Parent-child agent relationships
-- **Participant Management**: Add users and agents to workspaces
+## Scope
 
-### Workflow Engine
-- **DAG-Based Workflows**: Directed acyclic graph workflow execution
-- **Step Types**: Agent, Tool, HTTP, SQL, Approval, and Custom steps
-- **Conditional Logic**: Conditional branching in workflows
-- **Retry Logic**: Configurable retry policies
-- **Idempotency**: Idempotent workflow execution
-- **Compensation**: Compensation steps for rollback
-- **Scheduled Execution**: Cron-based workflow scheduling
-- **Execution Monitoring**: Track workflow execution status and history
+NeuronAgent is an agent runtime with REST/WebSocket API, tools, workflows, and memory. This document lists its capabilities and support level by area.
 
-### Human-in-the-Loop (HITL)
-- **Approval Gates**: Require human approval before proceeding
-- **Feedback Loops**: Collect and incorporate human feedback
-- **Email Notifications**: Email alerts for approval requests
-- **Webhook Notifications**: Webhook callbacks for events
-- **Feedback Statistics**: Track feedback ratings and comments
+---
 
-### Planning & Reflection
-- **LLM-Based Planning**: Generate execution plans from tasks
-- **Task Decomposition**: Break down complex tasks into subtasks
-- **Self-Reflection**: Agents can reflect on their own responses
-- **Quality Assessment**: Evaluate response quality
-- **Plan Execution**: Execute and track plan progress
+## Summary
 
-### Memory Management
-- **Hierarchical Memory**: Multi-level memory organization (STM/MTM/LPM)
-- **Vector Search**: HNSW-based semantic search
-- **Memory Promotion**: Promote important memories to long-term storage
-- **Memory Summarization**: Summarize memory chunks
-- **Memory Search**: Search memory by semantic similarity
-- **Automatic Memory Writing**: LLM-based extraction and storage of important information during conversations
-- **Memory Feedback Learning**: User feedback system to improve memory quality
-- **Memory Quality Metrics**: Track retrieval counts, feedback, and quality scores
-- **Memory Corruption Detection**: Detect and repair corrupted memories
-- **Memory Forgetting**: Intelligent forgetting strategies (time-based, importance-based, relevance-based, hybrid)
-- **Memory Conflict Resolution**: Detect and resolve conflicting memories
-- **Cross-Session Memory**: Share memories across sessions with privacy controls
-- **Adaptive Memory Strategies**: Usage-based importance adjustment, consolidation, and compression
 
-### Budget & Cost Management
-- **Per-Agent Budgets**: Set budgets for individual agents
-- **Per-Session Budgets**: Budget controls per conversation
-- **Real-Time Tracking**: Track costs in real-time
-- **Budget Alerts**: Alerts when approaching budget limits
-- **Period-Based Budgets**: Daily, weekly, monthly, yearly, or total budgets
-- **Cost Analytics**: Detailed cost breakdowns and analytics
+| Area | Capability | Status |
+|------|------------|--------|
+| **Agent runtime**              | State machine, runs, plans, steps, tool invocations, model calls                                                                                                                                                                                                                                                                    | Supported |
+| **Built-in tool types**        | SQL, HTTP, code, shell, browser, visualization, filesystem, memory, collaboration, multimodal, web search; ML, vector, RAG, analytics, hybrid search, reranking when compatible client configured; NeuronSQL (7 tools: schema_snapshot, validate_sql, explain_json, optimize_candidates, table_profile, index_profile, sample_rows) | Supported |
+| **Custom tools**               | DB-stored tools, dynamic registration, versioning, tool-level permissions                                                                                                                                                                                                                                                           | Supported |
+| **Workspaces & collaboration** | Workspaces, participant management, collaboration tool                                                                                                                                                                                                                                                                              | Supported |
+| **Workflow engine**            | DAG workflows, agent/tool/HTTP/SQL/approval/custom steps, retries, idempotency, compensation, scheduling, audit                                                                                                                                                                                                                     | Supported |
+| **Human-in-the-loop**          | Approval gates, feedback, email/webhook notifications                                                                                                                                                                                                                                                                               | Supported |
+| **Memory**                     | Hierarchical memory (STM/MTM/LPM), vector search (HNSW), promotion, summarization, feedback, quality metrics, forgetting, conflict resolution; episodic memory schema                                                                                                                                                               | Supported / Partial                    |
+| **Budget & cost**              | Per-agent and per-session budgets, tracking, alerts, period-based, cost analytics                                                                                                                                                                                                                                                   | Supported |
+| **REST API**                   | CRUD for agents, sessions, tools, workflows, etc.; pagination, filtering; API key auth                                                                                                                                                                                                                                              | Supported |
+| **WebSocket**                  | Streaming responses, message queue, keepalive                                                                                                                                                                                                                                                                                       | Supported |
+| **Auth & RBAC**                | API keys, bcrypt, RBAC, principal/session tool permissions, workspace policies                                                                                                                                                                                                                                                      | Supported |
+| **Database schemas**           | Runtime, tenancy, RBAC, audit (v2), compliance, marketplace, tool versioning, self-improvement, reliability, observability, advanced memory, distributed                                                                                                                                                                            | Supported (schema)                     |
+| **Audit & compliance**         | Audit tables (audit_events, policy_decisions, tool_invocations, workflow_executions_audit, approval_actions); compliance_reports (report_type: soc2, iso27001, gdpr)                                                                                                                                                                | Supported (schema) / Partial (reports) |
+| **Marketplace**                | Schema only (marketplace_tools, tool_ratings, marketplace_agents, marketplace_workflows)                                                                                                                                                                                                                                            | Partial                           |
+| **Claw gateway**               | `/claw/v1` tools/list, tools/run, health — NeuronSQL tools only                                                                                                                                                                                                                                                                     | Supported |
+| **NeuronSQL**                  | SQL validation, explain, optimize, schema/table/index profile, sample rows; policy engine; workflow templates                                                                                                                                                                                                                       | Supported |
 
-### Evaluation Framework
-- **Automated Evaluation**: Evaluate agent performance automatically
-- **Quality Scoring**: Score responses for quality metrics
-- **Retrieval Evaluation**: Evaluate RAG retrieval performance
-- **Evaluation Runs**: Batch evaluation across multiple tasks
-- **Evaluation Results**: Detailed evaluation results and metrics
 
-### Execution Snapshots & Replay
-- **Execution Snapshots**: Capture complete execution state
-- **Deterministic Replay**: Replay executions deterministically
-- **Snapshot Management**: List, get, and delete snapshots
-- **Version Comparison**: Compare different execution versions
+---
 
-### Virtual Filesystem (VFS)
-- **File Operations**: Create, read, write, delete files
-- **File Copying**: Copy files between locations
-- **File Moving**: Move/rename files
-- **Metadata Support**: Attach metadata to files
-- **Path-Based Access**: Access files via path strings
+## Supported
 
-### Async Task Execution
-- **Background Processing**: Execute tasks asynchronously
-- **Task Status Tracking**: Monitor async task status
-- **Task Cancellation**: Cancel running async tasks
-- **Task Notifications**: Email and webhook notifications
+**Agent runtime:** State machine for task execution; persistent runs, plans, steps; tool invocations and model calls stored; execution traces, retrieval events, context builds.
 
-### Alert Preferences
-- **Budget Thresholds**: Set budget alert thresholds
-- **Email Notifications**: Configure email alerts
-- **Webhook URLs**: Configure webhook endpoints
-- **Per-Agent Settings**: Different alert settings per agent
+**Built-in tool handlers:** `sql`, `http`, `code`, `shell`, `browser`, `visualization`, `filesystem`, `memory`, `collaboration`, `multimodal`, `web_search`. When a compatible database client is configured: `ml`, `vector`, `rag`, `analytics`, `hybrid_search`, `reranking`. NeuronSQL (Claw): `schema_snapshot`, `validate_sql`, `explain_json`, `optimize_candidates`, `table_profile`, `index_profile`, `sample_rows`. Custom tools can be registered from the database.
 
-### Event Streams
-- **Event Logging**: Log events during execution
-- **Event History**: Retrieve event history
-- **Event Summarization**: Summarize event streams
-- **Context Windows**: Get context windows from events
-- **Event Counting**: Count events by type
+**Workspaces:** Create workspaces; add users/agents; collaboration tool for shared context.
 
-### Agentic RAG (2023-2024)
-- **Intelligent Retrieval**: Agent decides when and where to retrieve information
-- **Knowledge Routing**: Route queries to appropriate sources (vector DB, web, APIs)
-- **Relevance Checking**: Evaluate if retrieval is needed before expensive operations
-- **Retrieval Learning**: Learn from past retrieval decisions to improve routing
-- **Multi-Source Retrieval**: Retrieve from multiple knowledge sources simultaneously
-- **Retrieval Statistics**: Track retrieval decisions, outcomes, and quality metrics
+**Workflow engine:** DAG-based workflows; step types: agent, tool, HTTP, SQL, approval, custom; conditional logic, retry, idempotency, compensation steps; cron scheduling; execution history and audit (e.g. `workflow_executions_audit`).
 
-### Agent Memory (2024+)
-- **Read and Write**: Agents can create, update, and delete information during conversations
-- **Learning from Interactions**: Learn from past interactions and personalize experiences
-- **Personalization**: Customize responses based on stored preferences and past conversations
-- **Memory Feedback**: User feedback system to improve memory quality over time
-- **Automatic Memory Extraction**: LLM-based extraction of important facts and preferences
-- **Cross-Session Persistence**: Memories persist and can be shared across sessions
+**Human-in-the-loop:** Approval gates in workflows; feedback collection; email and webhook notifications for approvals.
 
-### Verification
-- **Output Verification**: Verify agent outputs
-- **Verification Rules**: Define custom verification rules
-- **LLM-Based Checks**: Use LLMs for verification
-- **Rule Management**: Create, update, delete verification rules
+**Memory:** Hierarchical memory (short/medium/long-term); HNSW-based vector search; promotion, summarization; user feedback; quality metrics; forgetting strategies; conflict resolution. Schema for episodic memory and related features.
 
-### Webhooks
-- **Event Webhooks**: Webhooks for agent events
-- **Delivery Tracking**: Track webhook deliveries
-- **Retry Logic**: Automatic retry for failed deliveries
-- **Webhook Management**: CRUD operations for webhooks
+**Budget & cost:** Per-agent and per-session budgets; real-time cost tracking; budget alerts; daily/weekly/monthly/yearly or total budgets; cost analytics.
 
-### Agent Versions
-- **Version Control**: Version agents with semantic versioning
-- **Version Activation**: Activate specific agent versions
-- **Version History**: Track agent version history
+**API:** REST CRUD for agents, sessions, tools, workflows, webhooks, etc.; pagination and filtering; API key authentication. WebSocket for streaming and message queue.
 
-### Tool System
-- **18+ Built-in Tools**: SQL, HTTP, Code, Shell, Browser, Visualization, Filesystem, Memory, Collaboration, NeuronDB tools (ML, Vector, RAG, Hybrid Search, Reranking, Analytics), Multimodal, Web Search, Retrieval
-- **Custom Tools**: Register custom tools
-- **Tool Analytics**: Analytics for tool usage
-- **Tool Versioning**: Version control for tools
-- **Tool Deprecation**: Deprecate old tool versions
+**Auth:** API keys, bcrypt hashing, RBAC (admin/user), principal and session tool permissions, workspace policies.
 
-### Marketplace
-- **Tool Marketplace**: Publish and discover tools
-- **Agent Marketplace**: Publish and discover agents
-- **Ratings & Reviews**: Rate and review marketplace items
-- **Categories & Tags**: Organize marketplace items
+**Database:** Schemas for runtime, tenancy (organizations, quotas), RBAC (principal_tool_permissions, workflow_permissions, workspace_policies), audit v2, compliance (audit_logs, compliance_reports), marketplace (marketplace_tools, tool_ratings, marketplace_agents, marketplace_workflows), tool versioning, self-improvement (execution_results, performance_feedback, ab_tests), reliability (dead_letter_queue), observability (execution_trace, performance_profiles), advanced memory, distributed (cluster_nodes, events, cache).
 
-### Compliance
-- **Compliance Reports**: Generate GDPR, HIPAA, SOX reports
-- **Audit Logging**: Comprehensive audit logs
-- **Data Privacy**: Privacy controls and reporting
+**Claw:** `POST /claw/v1/tools/list`, `POST /claw/v1/tools/run`, `GET /claw/v1/health`; only `neuronsql.`* tools are listed and executable.
 
-### Observability
-- **Decision Trees**: Visualize agent decision trees
-- **Tool Call Chains**: Track tool call sequences
-- **Performance Profiles**: Performance analysis
-- **Execution Analytics**: Detailed execution analytics
+**NeuronSQL:** Policy engine, sensitive tables, validation/explain/optimize/profile/sample tools; YAML workflow templates with audit and retries.
 
-### Batch Operations
-- **Batch Agent Creation**: Create multiple agents at once
-- **Batch Deletion**: Delete multiple resources
-- **Efficient Processing**: Optimized batch operations
+---
 
-## API Features
+## Partial support
 
-### REST API
-- **Full CRUD**: Complete CRUD operations for all resources
-- **Pagination**: Paginated list endpoints
-- **Filtering**: Filter by various criteria
-- **Search**: Search across resources
-- **Rate Limiting**: Configurable rate limits
-- **Authentication**: API key-based authentication
+**Compliance reports:** Tables exist for `audit_logs` and `compliance_reports` with `report_type IN ('soc2', 'iso27001', 'gdpr')`. Report generation (e.g. GDPR, HIPAA, SOX) may be basic or placeholder; HIPAA/SOX are not in the schema enum.
 
-### WebSocket
-- **Real-Time Streaming**: Stream agent responses in real-time
-- **Message Queue**: Queue multiple messages
-- **Ping/Pong Keepalive**: Connection keepalive
-- **Error Handling**: Graceful error handling
+**Marketplace:** Schema is present (tools, agents, workflows, ratings). ROADMAP states “No marketplace” as current state — publish/discover/rate platform UI or services may be incomplete or planned.
 
-## Advanced Features
+**Memory:** Advanced memory features (e.g. consolidation, compression, cross-session sharing) may vary by configuration and implementation maturity.
 
-### Agent Specializations
-- **Specialization Types**: Coding, research, data analysis, etc.
-- **Capability Definitions**: Define agent capabilities
-- **Specialization Management**: CRUD for specializations
+**NeuronDB integration:** ML, vector, RAG, analytics, hybrid search, reranking tools work when a compatible database client is configured; otherwise those tool types are not registered.
 
-### Agent Cloning
-- **Clone Agents**: Clone existing agents
-- **Memory Copying**: Option to copy memory
-- **Tool Copying**: Option to copy tools
+---
 
-### Agent Metrics
-- **Performance Metrics**: Track agent performance
-- **Cost Metrics**: Track agent costs
-- **Usage Analytics**: Usage statistics
+## Out of scope
 
-### Agent Relationships
-- **Relationship Types**: Parent, child, sibling relationships
-- **Relationship Metadata**: Attach metadata to relationships
+- **Tool/Agent marketplace platform:** Schema exists; full marketplace product (publish, discover, rate, categories) is not fully implemented per ROADMAP.
 
-## Integration Features
+---
 
-### NeuronDB Integration
-- **Vector Operations**: Direct access to NeuronDB vector functions
-- **ML Operations**: Access to ML algorithms
-- **RAG Operations**: RAG capabilities
-- **Analytics**: Analytics functions
+## Counts (reference)
 
-### External Integrations
-- **HTTP Tools**: Call external APIs
-- **Webhook Support**: Receive webhooks
-- **Email Integration**: Send emails
-- **Browser Automation**: Playwright-based browser automation
+- **Built-in tool handler types:** ~18 (11 generic + 6 when compatible client configured + 7 NeuronSQL; some overlap with “tool types”).
+- **NeuronSQL tools (Claw):** 7.
+- **Compliance report types in schema:** 3 (soc2, iso27001, gdpr).
 
-## Security Features
+---
 
-### Authentication
-- **API Keys**: API key-based authentication
-- **Bcrypt Hashing**: Secure password hashing
-- **RBAC**: Role-based access control
-- **Fine-Grained Permissions**: Tool-level permissions
+## Documentation
 
-### Security Headers
-- **CORS**: Configurable CORS
-- **Security Headers**: Standard security headers
-- **Input Validation**: Comprehensive input validation
-- **SQL Injection Protection**: Protection against SQL injection
+- [README](README.md)
+- [API reference](docs/api-reference.md)
+- [NeuronSQL design](docs/neuronsql_design.txt)
+- [Workflow templates](docs/workflow_templates/README.md)
+- [ROADMAP](ROADMAP.md) for planned vs current state
 
-## Operational Features
+---
 
-### Background Jobs
-- **Job Queue**: PostgreSQL-based job queue
-- **Worker Pool**: Configurable worker pool
-- **Graceful Shutdown**: Clean shutdown handling
-- **Job Scheduling**: Scheduled job execution
-
-### Metrics & Monitoring
-- **Prometheus Metrics**: Prometheus-compatible metrics
-- **Structured Logging**: Structured logging
-- **Distributed Tracing**: Tracing support
-- **Health Checks**: Health check endpoints
-
-### Database
-- **Connection Pooling**: Efficient connection pooling
-- **Migrations**: Database migrations
-- **Health Checks**: Database health monitoring
-
-## Use Cases
-
-### Research Agents
-- Multi-step research workflows
-- Information gathering and synthesis
-- Report generation
-
-### Data Analysis Agents
-- SQL query generation
-- Data visualization
-- Statistical analysis
-
-### Customer Support Agents
-- Conversation management
-- Knowledge base search
-- Escalation workflows
-
-### Content Generation Agents
-- Content creation workflows
-- Content review and approval
-- Multi-format output
-
-### Automation Agents
-- Task automation
-- Workflow orchestration
-- Integration with external systems
-
-## Related
-
-- **[NeuronDB](../neurondb/FEATURES.md)** — Vector, ML, RAG used by NeuronAgent tools
-- **[NeuronHub](../neuron-hub/FEATURES.md)** — Agent builder, deploy, embed
-- **[NeuronMCP](../neuron-mcp/FEATURES.md)** — MCP server exposing NeuronDB tools
+[Back to top](#neuronagent-features) · [README](README.md)

@@ -1,0 +1,9 @@
+-- ============================================================================
+-- Multi-tenant RLS (Phase 4)
+-- Enable when org_id is populated and tenant isolation is required.
+-- ============================================================================
+-- ALTER TABLE neurondb_agent.agent_runs ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY agent_runs_org ON neurondb_agent.agent_runs
+--   USING (org_id = current_setting('app.current_org_id')::uuid);
+-- Similar for agent_plans, agent_steps, run_tool_invocations, model_calls,
+-- execution_traces. Set app.current_org_id in session before queries.

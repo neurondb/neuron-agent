@@ -1,39 +1,29 @@
 # NeuronAgent API Documentation
 
+> The canonical REST API reference is **[API Reference](api-reference.md)**. This document groups endpoints by area. Only endpoints **currently registered** on the server are listed; for request/response schemas and examples see the API reference and the [OpenAPI spec](../openapi/openapi.yaml).
+
 ## Table of Contents
 
 - [Base URL](#base-url)
-- [OpenAPI Specification](#openapi-specification)
 - [Authentication](#authentication)
 - [Endpoints](#endpoints)
   - [Agents](#agents)
   - [Sessions](#sessions)
   - [Messages](#messages)
-  - [Workflows](#workflows)
-  - [Plans](#plans)
-  - [Budgets](#budgets)
-  - [Collaborations](#collaborations)
   - [Tools](#tools)
   - [Memory](#memory)
+  - [Runs](#runs)
+  - [Budgets](#budgets)
+  - [Approvals](#approvals)
+  - [Feedback](#feedback)
+  - [Analytics](#analytics)
+  - [Batch](#batch)
+  - [Workflows](#workflows)
+  - [Governance and Admin](#governance-and-admin)
+  - [LLM SQL and RAG](#llm-sql-and-rag)
   - [WebSocket](#websocket)
-- [Reflections](#reflections)
-- [Webhooks](#webhooks)
-- [Approval Requests](#approval-requests)
-- [Feedback](#feedback)
-- [Marketplace](#marketplace)
-- [Compliance](#compliance)
-- [Observability](#observability)
-- [Async Tasks](#async-tasks)
-- [Event Streams](#event-streams)
-- [Verification](#verification)
-- [Virtual Filesystem](#virtual-filesystem)
-- [Evaluation](#evaluation)
-- [Replay](#replay)
-- [RAG](#rag)
-- [Embeddings](#embeddings)
-- [Analytics](#analytics)
-- [Error Handling](#error-handling)
-- [Rate Limiting](#rate-limiting)
+- [Not Currently Exposed](#not-currently-exposed)
+- [Error Handling and Rate Limiting](#error-handling-and-rate-limiting)
 
 ## Base URL
 
@@ -43,24 +33,11 @@ http://localhost:8080/api/v1
 
 ## OpenAPI Specification
 
-For machine-readable API specification, see the [OpenAPI 3.0 specification](../openapi/openapi.yaml).
-
-The OpenAPI spec includes:
-- Complete endpoint definitions
-- Request/response schemas
-- Authentication requirements
-- Error responses
-- Example requests and responses
-
-You can use the OpenAPI spec to:
-- Generate client libraries
-- View interactive API documentation (Swagger UI, Redoc)
-- Validate API requests/responses
-- Import into API testing tools
+See the [OpenAPI 3.0 spec](../openapi/openapi.yaml) for request/response schemas and to generate clients.
 
 ## Authentication
 
-All API requests require authentication using an API key in the Authorization header:
+Generate keys with `./scripts/neuronagent-generate-keys.sh` or the `generate-key` binary.
 
 ```
 Authorization: Bearer <api_key>
@@ -144,45 +121,34 @@ GET /api/v1/agents/{id}/costs
 ```
 GET /api/v1/agents/{id}/versions
 ```
+*Not currently registered on the server.*
 
 #### Create Agent Version
-```
-POST /api/v1/agents/{id}/versions
-```
+*Not currently registered.*
 
 #### Get Agent Version
-```
-GET /api/v1/agents/{id}/versions/{version}
-```
+*Not currently registered.*
 
 #### Activate Agent Version
-```
-PUT /api/v1/agents/{id}/versions/{version}/activate
-```
+*Not currently registered.*
 
 #### List Agent Relationships
-```
-GET /api/v1/agents/{id}/relationships
-```
+*Not currently registered.*
 
 #### Create Agent Relationship
-```
-POST /api/v1/agents/{id}/relationships
-```
+*Not currently registered.*
 
 #### Delete Agent Relationship
-```
-DELETE /api/v1/agents/{id}/relationships/{relationship_id}
-```
+*Not currently registered.*
 
 #### Batch Create Agents
 ```
-POST /api/v1/agents/batch
+POST /api/v1/batch/agents
 ```
 
 #### Batch Delete Agents
 ```
-POST /api/v1/agents/batch/delete
+POST /api/v1/batch/agents/delete
 ```
 
 ### Sessions
@@ -257,10 +223,31 @@ PUT /api/v1/messages/{id}
 DELETE /api/v1/messages/{id}
 ```
 
+### Tools
+
+- `POST /api/v1/tools` — Create tool
+- `GET /api/v1/tools` — List tools
+- `GET /api/v1/tools/{id}` — Get tool
+- `PUT /api/v1/tools/{id}` — Update tool
+- `DELETE /api/v1/tools/{id}` — Delete tool
+- `GET /api/v1/tools/{id}/analytics` — Tool analytics
+
 #### Batch Delete Messages
 ```
-POST /api/v1/messages/batch/delete
+POST /api/v1/batch/messages/delete
 ```
+
+### Approvals (human-in-the-loop)
+
+- `GET /api/v1/approvals` — List approval requests
+- `GET /api/v1/approvals/{id}` — Get approval request
+- `POST /api/v1/approvals/{id}/approve` — Approve
+- `POST /api/v1/approvals/{id}/reject` — Reject
+
+### Feedback
+
+- `GET /api/v1/feedback` — List feedback
+- `GET /api/v1/feedback/stats` — Feedback statistics
 
 ### WebSocket
 
@@ -333,72 +320,22 @@ Receive responses:
 
 ## Evaluation Framework
 
-### Create Evaluation Task
-```
-POST /api/v1/eval/tasks
-```
+*These endpoints are not currently registered on the server.*
 
-Request body:
-```json
-{
-  "task_type": "end_to_end",
-  "input": "What is the capital of France?",
-  "expected_output": "Paris",
-  "expected_tool_sequence": {},
-  "metadata": {}
-}
-```
-
-### List Evaluation Tasks
-```
-GET /api/v1/eval/tasks?task_type=end_to_end&limit=100&offset=0
-```
-
-### Create Evaluation Run
-```
-POST /api/v1/eval/runs
-```
-
-### Execute Evaluation Run
-```
-POST /api/v1/eval/runs/{run_id}/execute
-```
-
-### Get Evaluation Run Results
-```
-GET /api/v1/eval/runs/{run_id}/results
-```
+- `POST /api/v1/eval/tasks`
+- `GET /api/v1/eval/tasks`
+- `POST /api/v1/eval/runs`
+- `POST /api/v1/eval/runs/{run_id}/execute`
+- `GET /api/v1/eval/runs/{run_id}/results`
 
 ## Execution Snapshots and Replay
 
-### Create Execution Snapshot
-```
-POST /api/v1/sessions/{session_id}/snapshots
-```
+*These endpoints are not currently registered on the server.*
 
-Request body:
-```json
-{
-  "user_message": "Hello, agent!",
-  "deterministic_mode": false
-}
-```
-
-### List Snapshots
-```
-GET /api/v1/sessions/{session_id}/snapshots
-GET /api/v1/agents/{agent_id}/snapshots
-```
-
-### Replay Execution
-```
-POST /api/v1/snapshots/{id}/replay
-```
-
-### Delete Snapshot
-```
-DELETE /api/v1/snapshots/{id}
-```
+- `POST /api/v1/sessions/{session_id}/snapshots`
+- `GET /api/v1/sessions/{session_id}/snapshots`, `GET /api/v1/agents/{agent_id}/snapshots`
+- `POST /api/v1/snapshots/{id}/replay`
+- `DELETE /api/v1/snapshots/{id}`
 
 ## Workflow Schedules
 
@@ -423,7 +360,7 @@ GET /api/v1/workflows/{workflow_id}/schedule
 
 ### List Workflow Schedules
 ```
-GET /api/v1/workflow-schedules
+GET /api/v1/workflows/schedules
 ```
 
 ### Delete Workflow Schedule
@@ -433,48 +370,21 @@ DELETE /api/v1/workflows/{workflow_id}/schedule
 
 ## Agent Specializations
 
-### Create Agent Specialization
-```
-POST /api/v1/agents/{agent_id}/specialization
-```
+*These endpoints are not currently registered on the server.*
 
-Request body:
-```json
-{
-  "specialization_type": "coding",
-  "capabilities": ["python", "javascript", "sql"],
-  "config": {}
-}
-```
-
-### Get Agent Specialization
-```
-GET /api/v1/agents/{agent_id}/specialization
-```
-
-### List Specializations
-```
-GET /api/v1/specializations?specialization_type=coding
-```
-
-### Update Specialization
-```
-PUT /api/v1/agents/{agent_id}/specialization
-```
-
-### Delete Specialization
-```
-DELETE /api/v1/agents/{agent_id}/specialization
-```
+- `POST /api/v1/agents/{agent_id}/specialization`
+- `GET /api/v1/agents/{agent_id}/specialization`
+- `GET /api/v1/specializations`
+- `PUT /api/v1/agents/{agent_id}/specialization`
+- `DELETE /api/v1/agents/{agent_id}/specialization`
 
 ## Memory Management
 
 ### Submit Memory Feedback
 ```
-POST /api/v1/memory/{memory_id}/feedback
+POST /api/v1/agents/{id}/memory/feedback
 ```
-
-Submit user feedback on a memory retrieval to improve memory quality over time.
+Submit user feedback on memory retrieval. (Not `POST /api/v1/memory/{memory_id}/feedback`.)
 
 Request body:
 ```json
@@ -506,30 +416,9 @@ Response:
 
 ### Get Retrieval Statistics
 ```
-GET /api/v1/agents/{id}/retrieval-stats?days=30
+GET /api/v1/analytics/retrieval-stats
 ```
-
-Get statistics about retrieval decisions for an agent. Useful for understanding retrieval patterns and improving routing.
-
-Query parameters:
-- `days` (optional): Number of days to analyze (default: 30, max: 365)
-
-Response:
-```json
-{
-  "agent_id": "uuid",
-  "days": 30,
-  "total_decisions": 150,
-  "avg_confidence": 0.75,
-  "source_usage": {
-    "vector_db": 80,
-    "web": 50,
-    "api": 20
-  },
-  "avg_quality_score": 0.82,
-  "duration_ms": 120
-}
-```
+Retrieval statistics (not under `/api/v1/agents/{id}/retrieval-stats`).
 
 ### Consolidate Memory
 ```

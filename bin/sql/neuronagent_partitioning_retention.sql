@@ -1,0 +1,16 @@
+-- ============================================================================
+-- Partitioning and retention (Phase 4)
+-- Optional: apply when high volume requires it.
+-- ============================================================================
+-- agent_runs: range partition by created_at (monthly). Retention: 90 days hot.
+-- execution_traces: range partition by created_at (weekly). Retention: 30 days.
+--
+-- Example (PostgreSQL 11+):
+-- CREATE TABLE neurondb_agent.agent_runs_partitioned (
+--   LIKE neurondb_agent.agent_runs INCLUDING ALL
+-- ) PARTITION BY RANGE (created_at);
+-- CREATE TABLE neurondb_agent.agent_runs_2024_01 PARTITION OF neurondb_agent.agent_runs_partitioned
+--   FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+-- ... then backfill from agent_runs and switch.
+--
+-- Retention: use pg_cron or application job to DELETE FROM agent_runs WHERE created_at < NOW() - INTERVAL '90 days';

@@ -143,9 +143,9 @@ Common issues and solutions for NeuronAgent deployment and usage.
 
 3. **Run Migrations**
    ```bash
-   psql -d neurondb -f sql/001_initial_schema.sql
-   psql -d neurondb -f sql/002_add_indexes.sql
-   # ... run all migrations
+   # From this repository root
+   psql -d neurondb -f sql/neuron-agent.sql
+   # Apply other schema files under sql/ as needed (e.g. neuronagent_*.sql)
    ```
 
 4. **Check Resource Limits**

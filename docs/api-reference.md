@@ -255,22 +255,22 @@ Lists all available tools.
 Registers a new custom tool.
 
 #### Get Tool
-`GET /api/v1/tools/{name}`
+`GET /api/v1/tools/{id}`
 
 Retrieves tool details.
 
 #### Update Tool
-`PUT /api/v1/tools/{name}`
+`PUT /api/v1/tools/{id}`
 
 Updates tool configuration.
 
 #### Delete Tool
-`DELETE /api/v1/tools/{name}`
+`DELETE /api/v1/tools/{id}`
 
 Deletes a tool.
 
 #### Get Tool Analytics
-`GET /api/v1/tools/{name}/analytics`
+`GET /api/v1/tools/{id}/analytics`
 
 Retrieves usage analytics for a tool.
 
@@ -297,11 +297,24 @@ Retrieves a specific memory chunk.
 Deletes a memory chunk.
 
 #### Summarize Memory
-`POST /api/v1/memory/{id}/summarize`
+`POST /api/v1/agents/{id}/memory/summarize`
 
-Generates a summary of memory chunks.
+Generates a summary of memory chunks (or use the agent-scoped path above).
 
-### Plans, Reflections, Budgets, Webhooks, Human-in-the-Loop, Collaboration Workspaces, Async Tasks, Alert Preferences, Batch Operations, Analytics, and more are documented in [api.md](api.md).
+### Approvals (human-in-the-loop)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/approvals` | List approval requests |
+| GET | `/api/v1/approvals/{id}` | Get approval request |
+| POST | `/api/v1/approvals/{id}/approve` | Approve request |
+| POST | `/api/v1/approvals/{id}/reject` | Reject request |
+
+### Feedback, Budgets, Batch, Analytics, Workflows, Runs, Governance, Admin, LLM SQL, RAG
+
+Feedback: `POST /api/v1/sessions/{id}/feedback`, `GET /api/v1/feedback`, `GET /api/v1/feedback/stats`. Budgets: `GET/POST/PUT /api/v1/agents/{id}/budget`. Batch: `POST /api/v1/batch/agents`, `POST /api/v1/batch/agents/delete`, `POST /api/v1/batch/messages/delete`, `POST /api/v1/batch/tools/delete`. Analytics: `GET /api/v1/analytics/overview`, `GET /api/v1/analytics/retrieval-stats`. Workflows: CRUD and execute under `/api/v1/workflows`. Runs: `POST /api/v1/agents/{id}/runs`, `GET /api/v1/runs/{id}`, and related. Governance: `/api/v1/governance/*`. Admin: `GET /api/v1/admin/config`, `GET /api/v1/admin/diagnostics`. LLM SQL: `POST /api/v1/llm/sql/generate`, `explain`, `optimize`, `debug`, `translate`, `GET /api/v1/llm/sql/models`. RAG: `POST /api/v1/rag/ingest` (when NeuronDB client is configured). Claw (NeuronSQL tools): `POST /claw/v1/tools/list`, `POST /claw/v1/tools/run`, `GET /claw/v1/health`.
+
+**Note:** Webhooks, collaboration workspaces, async tasks, and alert preferences have handlers in code but are not currently mounted on the router; do not rely on them in the public API until documented as available.
 
 ### WebSocket
 
