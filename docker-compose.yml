@@ -1,0 +1,52 @@
+# Local stack: PostgreSQL + NeuronAgent
+# Full NeuronDB/RAG features require a Postgres image with the NeuronDB extension installed.
+# Apply schema after DB is up: make migrate (from host with DB_* matching this file)
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-neurondb}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-neurondb}
+      POSTGRES_DB: ${DB_NAME:-neurondb}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - neuronagent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-neurondb} -d ${DB_NAME:-neurondb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  neuronagent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: ${NEURON_AGENT_IMAGE:-neuronagent:local}
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-neurondb}
+      DB_USER: ${DB_USER:-neurondb}
+      DB_PASSWORD: ${DB_PASSWORD:-neurondb}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      CONFIG_PROFILE: ${CONFIG_PROFILE:-development}
+    ports:
+      - "${SERVER_HOST_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+volumes:
+  neuronagent_pgdata:

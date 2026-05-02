@@ -48,8 +48,10 @@ func RequestTimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Han
 func AuthMiddleware(keyManager *auth.APIKeyManager, principalManager *auth.PrincipalManager, rateLimiter auth.RateLimiterInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			/* Skip auth for health and metrics endpoints */
-			if r.URL.Path == "/health" || r.URL.Path == "/metrics" {
+			/* Skip auth for health, metrics, readiness, and version endpoints */
+			if r.URL.Path == "/health" || r.URL.Path == "/healthz" || r.URL.Path == "/metrics" ||
+				r.URL.Path == "/readyz" || r.URL.Path == "/version" ||
+				r.URL.Path == "/docs" || strings.HasPrefix(r.URL.Path, "/docs/") {
 				next.ServeHTTP(w, r)
 				return
 			}

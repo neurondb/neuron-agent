@@ -173,6 +173,14 @@ func LoadFromEnv(cfg *Config) error {
 			cfg.Workflow.MaxDuration = parsed
 		}
 	}
+	if v := os.Getenv("WORKFLOW_SCHEDULE_ENABLED"); v == "false" || v == "0" {
+		cfg.Workflow.ScheduleEnabled = false
+	}
+	if d := os.Getenv("WORKFLOW_SCHEDULE_INTERVAL"); d != "" {
+		if parsed, err := time.ParseDuration(d); err == nil {
+			cfg.Workflow.ScheduleInterval = parsed
+		}
+	}
 
 	/* Modules: enable/disable via MODULE_<NAME>_ENABLED (e.g. MODULE_NEURONSQL_ENABLED=true) */
 	if cfg.Modules == nil {

@@ -1,0 +1,38 @@
+# Merge with the root stack to run PostgreSQL built from a local NeuronDB clone (extension + ONNX stack).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.neurondb.yml up -d --build
+#
+# Set NEURONDB_REPO to your NeuronDB git checkout (absolute path recommended in CI).
+# Default ../neurondb assumes neuron-agent and neurondb are sibling directories.
+#
+# Switching from stock postgres:17-alpine to NeuronDB often requires a fresh data volume:
+#   docker compose -f docker-compose.yml -f docker-compose.neurondb.yml down -v
+
+services:
+  postgres:
+    image: ${NEURONDB_IMAGE:-neuronagent-neurondb:local}
+    build:
+      context: ${NEURONDB_REPO:-../neurondb}
+      dockerfile: docker/neurondb/Dockerfile
+      args:
+        PG_MAJOR: ${PG_MAJOR:-17}
+        ONNX_VERSION: ${ONNX_VERSION:-1.17.0}
+        VERSION: ${VERSION:-latest}
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+    init: true
+    entrypoint: ["/usr/local/bin/docker-entrypoint-neurondb.sh"]
+    command: ["postgres"]
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-md5}
+      NEURONDB_GPU_BACKEND_TYPE: ${NEURONDB_GPU_BACKEND_TYPE:-0}
+      NEURONDB_COMPUTE_MODE: ${NEURONDB_COMPUTE_MODE:-0}
+      NEURONDB_LLM_API_KEY: ${NEURONDB_LLM_API_KEY:-}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USER:-neurondb} -d ${DB_NAME:-neurondb}
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s

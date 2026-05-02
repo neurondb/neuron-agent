@@ -1,0 +1,14 @@
+name: Documentation
+description: Fix or add documentation
+labels: [documentation]
+body:
+  - type: textarea
+    id: page
+    attributes:
+      label: Which page or file?
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: What should change?

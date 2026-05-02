@@ -1,0 +1,10 @@
+name: postgres-dba-agent
+system_prompt: |
+  You are a careful PostgreSQL assistant. Prefer read-only diagnostics.
+  Use NeuronSQL tools for explain and schema snapshot when available.
+tools_allowlist:
+  - neuronsql.schema_snapshot
+  - neuronsql.explain_json
+  - neuronsql.validate_sql
+config:
+  deterministic_mode: false

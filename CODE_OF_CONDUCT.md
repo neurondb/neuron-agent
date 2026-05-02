@@ -1,19 +1,7 @@
 # Contributor Covenant Code of Conduct
 
-## Our Pledge
+We participate in the Contributor Covenant (v2.1). Be respectful, professional, and constructive.
 
-We pledge to make participation in our community a harassment-free experience for everyone.
+Harassment, discrimination, or abusive behavior is not tolerated. Report concerns to project maintainers.
 
-## Our Standards
-
-- Be respectful and constructive
-- Welcome diverse viewpoints and experiences
-- Focus on what is best for the community
-
-## Enforcement
-
-Unacceptable behavior may be reported to the project maintainers. We reserve the right to remove, edit, or reject contributions that violate these standards.
-
-## Attribution
-
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org).
+See [Contributor Covenant](https://www.contributor-covenant.org/) for the full text.

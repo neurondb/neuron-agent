@@ -16,9 +16,13 @@ package neurondb
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
+
+var sqlIdentifierPattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 /* VectorClient handles vector operations via NeuronDB */
 type VectorClient struct {
@@ -30,14 +34,31 @@ func NewVectorClient(db *sqlx.DB) *VectorClient {
 	return &VectorClient{db: db}
 }
 
+/* validateSQLIdentifier allows schema-safe table/column tokens (optionally qualified schema.table). */
+func validateSQLIdentifier(name string) error {
+	if name == "" {
+		return fmt.Errorf("identifier is empty")
+	}
+	parts := strings.Split(name, ".")
+	if len(parts) > 2 {
+		return fmt.Errorf("identifier must be column, table, or schema.table form")
+	}
+	for _, p := range parts {
+		if !sqlIdentifierPattern.MatchString(p) {
+			return fmt.Errorf("invalid SQL identifier segment %q (use letters, digits, underscore only)", p)
+		}
+	}
+	return nil
+}
+
 /* VectorSearch performs vector similarity search */
 func (c *VectorClient) VectorSearch(ctx context.Context, tableName, vectorCol string, queryVector Vector, limit int, metric string) ([]VectorSearchResult, error) {
 	/* Validate inputs */
-	if tableName == "" {
-		return nil, fmt.Errorf("vector search failed: table_name_empty=true")
+	if err := validateSQLIdentifier(tableName); err != nil {
+		return nil, fmt.Errorf("vector search failed: invalid table_name: %w", err)
 	}
-	if vectorCol == "" {
-		return nil, fmt.Errorf("vector search failed: vector_col_empty=true")
+	if err := validateSQLIdentifier(vectorCol); err != nil {
+		return nil, fmt.Errorf("vector search failed: invalid vector_col: %w", err)
 	}
 	if len(queryVector) == 0 {
 		return nil, fmt.Errorf("vector search failed: query_vector_empty=true")
@@ -61,19 +82,32 @@ func (c *VectorClient) VectorSearch(ctx context.Context, tableName, vectorCol st
 		distanceOp = "<->"
 	}
 
-	/* Sanitize table and column names to prevent SQL injection */
-	/* In production, use parameterized queries or whitelist validation */
-	query := fmt.Sprintf(`
-		SELECT id, %s AS distance, 1 - (%s) AS similarity
-		FROM %s
-		ORDER BY %s %s
-		LIMIT $1`,
-		distanceOp, distanceOp, tableName, vectorCol, distanceOp)
+	/* pgvector / NeuronDB: bind query vector as $1::vector, limit as $2 */
+	qv := formatVectorForPostgres(queryVector)
 
-	/* Note: tableName and vectorCol should be validated/whitelisted in production */
+	/* Distance column uses vector_col distanceOp query_embedding */
+	distExpr := fmt.Sprintf("(%s %s $1::vector)", vectorCol, distanceOp)
+
+	/* Similarity: cosine distance is [0,2] typically; L2 is unbounded — map to a bounded score */
+	var simExpr string
+	switch distanceOp {
+	case "<=>":
+		simExpr = fmt.Sprintf("(1.0 - (%s %s $1::vector))", vectorCol, distanceOp)
+	default:
+		simExpr = fmt.Sprintf("(1.0 / (1.0 + (%s %s $1::vector)))", vectorCol, distanceOp)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id,
+		       %s AS distance,
+		       %s AS similarity
+		FROM %s
+		ORDER BY %s %s $1::vector
+		LIMIT $2`,
+		distExpr, simExpr, tableName, vectorCol, distanceOp)
 
 	var results []VectorSearchResult
-	err := c.db.SelectContext(ctx, &results, query, limit)
+	err := c.db.SelectContext(ctx, &results, query, qv, limit)
 	if err != nil {
 		return nil, fmt.Errorf("vector search failed via NeuronDB: table_name='%s', vector_col='%s', query_vector_dimension=%d, limit=%d, metric='%s', error=%w",
 			tableName, vectorCol, len(queryVector), limit, metric, err)

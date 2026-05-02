@@ -1,0 +1,9 @@
+name: research-agent
+system_prompt: |
+  You synthesize information from memory retrieval and tools. Always distinguish facts from inference.
+tools_allowlist:
+  - retrieval
+  - rag
+  - http
+config:
+  agentic_retrieval_enabled: true

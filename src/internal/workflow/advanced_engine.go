@@ -381,6 +381,11 @@ func (awe *AdvancedWorkflowEngine) buildStepInputs(step *db.WorkflowStep, workfl
 	return inputs
 }
 
+/* EvaluateCondition exposes condition evaluation for the main workflow engine (conditional step type). */
+func (awe *AdvancedWorkflowEngine) EvaluateCondition(ctx context.Context, condition string, inputs map[string]interface{}) (bool, error) {
+	return awe.evaluateCondition(ctx, condition, inputs)
+}
+
 func (awe *AdvancedWorkflowEngine) evaluateCondition(ctx context.Context, condition string, inputs map[string]interface{}) (bool, error) {
 	if condition == "" {
 		return true, nil

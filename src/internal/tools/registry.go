@@ -14,9 +14,12 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -89,6 +92,7 @@ func NewRegistry(queries *db.Queries, database *db.DB) *Registry {
 	sqlTool.db = database
 	registry.RegisterHandler("sql", sqlTool)
 	registry.RegisterHandler("http", NewHTTPTool())
+	registry.RegisterHandler("mcp", NewMCPTool())
 	registry.RegisterHandler("code", NewCodeTool())
 	registry.RegisterHandler("shell", NewShellTool())
 	browserTool := NewBrowserTool()
@@ -473,15 +477,125 @@ func (r *Registry) ListClawTools() []string {
 	return out
 }
 
-/* SyncFromMCP discovers tools from an MCP server and upserts them into neurondb_agent.tools.
- * Expected: call MCP tools/list at mcpServerURL, then for each tool upsert into tools with
- * handler_type = 'mcp', handler_config = { mcp_server_url, tool_name }, and schema from MCP.
- * Tool versioning (tool_versions table) can be updated when schema changes.
- * This is a stub that returns nil until MCP client is integrated. */
+/* SyncFromMCP calls JSON-RPC tools/list on an HTTP MCP endpoint and upserts neurondb_agent.tools rows
+ * with handler_type = mcp and handler_config { mcp_server_url, tool_name }. Execution uses MCPTool (tools/call). */
 func (r *Registry) SyncFromMCP(ctx context.Context, mcpServerURL string) error {
-	_ = mcpServerURL
+	base := strings.TrimRight(strings.TrimSpace(mcpServerURL), "/")
+	if base == "" {
+		return fmt.Errorf("mcp server URL is required")
+	}
+	body := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "tools/list",
+		"params":  map[string]interface{}{},
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: mcpHTTPTimeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("mcp tools/list HTTP %d: %s", resp.StatusCode, string(truncateBytes(respBody, 512)))
+	}
+	var envelope struct {
+		Result struct {
+			Tools []struct {
+				Name        string                 `json:"name"`
+				Description string                 `json:"description"`
+				InputSchema map[string]interface{} `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(respBody, &envelope); err != nil {
+		return fmt.Errorf("mcp tools/list decode: %w", err)
+	}
+	if envelope.Error != nil {
+		return fmt.Errorf("mcp tools/list error: %s", envelope.Error.Message)
+	}
+	for _, t := range envelope.Result.Tools {
+		if strings.TrimSpace(t.Name) == "" {
+			continue
+		}
+		toolName := "mcp." + sanitizeMCPToolName(t.Name)
+		desc := t.Description
+		schema := db.JSONBMap{}
+		if t.InputSchema != nil {
+			for k, v := range t.InputSchema {
+				schema[k] = v
+			}
+		}
+		cfg := db.JSONBMap{
+			"mcp_server_url": base,
+			"tool_name":      t.Name,
+		}
+		row := &db.Tool{
+			Name:          toolName,
+			Description:   desc,
+			ArgSchema:     schema,
+			HandlerType:   "mcp",
+			HandlerConfig: cfg,
+			Enabled:       true,
+		}
+		_, err := r.queries.GetTool(ctx, toolName)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				if err := r.queries.CreateTool(ctx, row); err != nil {
+					return fmt.Errorf("create tool %s: %w", toolName, err)
+				}
+				continue
+			}
+			return err
+		}
+		if err := r.queries.UpdateTool(ctx, row); err != nil {
+			return fmt.Errorf("update tool %s: %w", toolName, err)
+		}
+	}
 	return nil
 }
+
+func sanitizeMCPToolName(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('_')
+		}
+	}
+	s := strings.Trim(b.String(), "_")
+	if s == "" {
+		return "tool"
+	}
+	return s
+}
+
+func truncateBytes(b []byte, max int) []byte {
+	if len(b) <= max {
+		return b
+	}
+	return b[:max]
+}
+
+const mcpHTTPTimeout = 60 * time.Second
 
 /* ExecuteByHandlerType runs a tool by handler type name with the given args (for Claw gateway). */
 func (r *Registry) ExecuteByHandlerType(ctx context.Context, handlerType string, args map[string]interface{}) (string, error) {

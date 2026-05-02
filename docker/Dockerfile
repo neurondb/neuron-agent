@@ -1,6 +1,16 @@
-# Multi-stage build for NeuronAgent
-# Build arguments
-ARG GO_VERSION=1.23
+# syntax=docker/dockerfile:1
+# Multi-stage build for NeuronAgent (distroless-compatible static binary; Debian slim runtime).
+#
+# Build:
+#   docker build -t neuronagent:latest -f docker/Dockerfile .
+# With version metadata (recommended for releases):
+#   docker build -f docker/Dockerfile \
+#     --build-arg VERSION=$(git describe --tags --always) \
+#     --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+#     --build-arg VCS_REF=$(git rev-parse HEAD) \
+#     -t neuronagent:latest .
+
+ARG GO_VERSION=1.24
 ARG VERSION=latest
 ARG BUILD_DATE
 ARG VCS_REF
@@ -13,7 +23,7 @@ WORKDIR /build
 COPY src/go.mod src/go.sum ./
 RUN go mod download
 
-# Copy source code
+# Copy source (tests excluded via .dockerignore for smaller context)
 COPY src/ .
 
 # Build the application with version information

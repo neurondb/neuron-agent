@@ -301,101 +301,147 @@ func (e *Engine) ExecuteStep(ctx context.Context, executionID uuid.UUID, step *d
 			return nil, fmt.Errorf("failed to check idempotency: %w", err)
 		}
 		if existingExecution != nil && existingExecution.Status == "completed" {
-			/* Return cached result */
 			return existingExecution.Outputs, nil
 		}
 	}
 
-	/* Per-step time budget from retry_config.timeout_seconds */
-	stepCtx := ctx
-	var cancel context.CancelFunc
+	maxExtra := 0
 	if step.RetryConfig != nil {
-		if sec := getStepTimeoutSeconds(step.RetryConfig); sec > 0 {
-			stepCtx, cancel = context.WithTimeout(ctx, time.Duration(sec)*time.Second)
-			defer func() {
+		maxExtra = getMaxRetries(step.RetryConfig)
+	}
+
+	var stepExecution *db.WorkflowStepExecution
+
+	for attempt := 0; attempt <= maxExtra; attempt++ {
+		stepCtx := ctx
+		var cancel context.CancelFunc
+		if step.RetryConfig != nil {
+			if sec := getStepTimeoutSeconds(step.RetryConfig); sec > 0 {
+				stepCtx, cancel = context.WithTimeout(ctx, time.Duration(sec)*time.Second)
+			}
+		}
+
+		if attempt == 0 {
+			stepExecution = &db.WorkflowStepExecution{
+				WorkflowExecutionID: executionID,
+				WorkflowStepID:      step.ID,
+				Status:              "running",
+				Inputs:              inputs,
+				Outputs:             make(map[string]interface{}),
+				IdempotencyKey:      step.IdempotencyKey,
+				RetryCount:          0,
+			}
+			now := time.Now()
+			stepExecution.StartedAt = &now
+			if err := e.queries.CreateWorkflowStepExecution(ctx, stepExecution); err != nil {
 				if cancel != nil {
 					cancel()
 				}
-			}()
+				return nil, fmt.Errorf("failed to create step execution: %w", err)
+			}
+		} else {
+			stepExecution.Status = "running"
+			stepExecution.ErrorMessage = nil
+			stepExecution.RetryCount = attempt
+			stepExecution.Outputs = make(map[string]interface{})
+			if err := e.queries.UpdateWorkflowStepExecution(ctx, stepExecution); err != nil {
+				if cancel != nil {
+					cancel()
+				}
+				return nil, fmt.Errorf("failed to update step execution for retry: %w", err)
+			}
+			delay := getRetryBackoff(step.RetryConfig, attempt)
+			select {
+			case <-ctx.Done():
+				if cancel != nil {
+					cancel()
+				}
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
 		}
-	}
 
-	/* Create step execution */
-	stepExecution := &db.WorkflowStepExecution{
-		WorkflowExecutionID: executionID,
-		WorkflowStepID:      step.ID,
-		Status:              "running",
-		Inputs:              inputs,
-		Outputs:             make(map[string]interface{}),
-		IdempotencyKey:      step.IdempotencyKey,
-	}
-	now := time.Now()
-	stepExecution.StartedAt = &now
+		var outputs map[string]interface{}
+		var err error
+		switch step.StepType {
+		case "agent":
+			outputs, err = e.executeAgentStep(stepCtx, executionID, step, inputs)
+		case "tool":
+			outputs, err = e.executeToolStep(stepCtx, step, inputs)
+		case "approval":
+			outputs, err = e.executeApprovalStep(stepCtx, executionID, stepExecution.ID, step, inputs)
+		case "http":
+			outputs, err = e.executeHTTPStep(stepCtx, step, inputs)
+		case "sql":
+			outputs, err = e.executeSQLStep(stepCtx, step, inputs)
+		case "conditional":
+			outputs, err = e.executeConditionalStep(stepCtx, step, inputs)
+		default:
+			err = fmt.Errorf("unknown step type: %s", step.StepType)
+		}
+		if cancel != nil {
+			cancel()
+		}
 
-	/* Save step execution */
-	if err := e.queries.CreateWorkflowStepExecution(ctx, stepExecution); err != nil {
-		return nil, fmt.Errorf("failed to create step execution: %w", err)
-	}
+		if err == nil {
+			stepExecution.Outputs = outputs
+			stepExecution.Status = "completed"
+			completedAt := time.Now()
+			stepExecution.CompletedAt = &completedAt
+			if err := e.queries.UpdateWorkflowStepExecution(ctx, stepExecution); err != nil {
+				return nil, fmt.Errorf("failed to update step execution: %w", err)
+			}
+			return outputs, nil
+		}
 
-	/* Execute step based on type */
-	var outputs map[string]interface{}
-	var err error
-
-	switch step.StepType {
-	case "agent":
-		outputs, err = e.executeAgentStep(stepCtx, step, inputs)
-	case "tool":
-		outputs, err = e.executeToolStep(stepCtx, step, inputs)
-	case "approval":
-		outputs, err = e.executeApprovalStep(stepCtx, executionID, stepExecution.ID, step, inputs)
-	case "http":
-		outputs, err = e.executeHTTPStep(stepCtx, step, inputs)
-	case "sql":
-		outputs, err = e.executeSQLStep(stepCtx, step, inputs)
-	default:
-		err = fmt.Errorf("unknown step type: %s", step.StepType)
-	}
-
-	/* Handle retries if error */
-	if err != nil {
 		stepExecution.Status = "failed"
 		errorMsg := err.Error()
 		stepExecution.ErrorMessage = &errorMsg
 
-		retryConfig := step.RetryConfig
-		if retryConfig != nil && stepExecution.RetryCount < getMaxRetries(retryConfig) {
-			/* Retry with backoff */
-			stepExecution.RetryCount++
+		if attempt == maxExtra {
 			if updateErr := e.queries.UpdateWorkflowStepExecution(ctx, stepExecution); updateErr != nil {
-				return nil, fmt.Errorf("failed to update step execution for retry: %w", updateErr)
+				return nil, fmt.Errorf("failed to update failed step execution: %w", updateErr)
 			}
-
-			/* Schedule retry - for now just return error, would need retry scheduler */
-			return nil, fmt.Errorf("step failed, retry %d/%d: %w", stepExecution.RetryCount, getMaxRetries(retryConfig), err)
+			return nil, err
 		}
-
-		/* Max retries reached or no retry config */
 		if updateErr := e.queries.UpdateWorkflowStepExecution(ctx, stepExecution); updateErr != nil {
-			return nil, fmt.Errorf("failed to update failed step execution: %w", updateErr)
+			return nil, fmt.Errorf("failed to update step execution after failure: %w", updateErr)
 		}
-		return nil, err
 	}
 
-	stepExecution.Outputs = outputs
-	stepExecution.Status = "completed"
-	completedAt := time.Now()
-	stepExecution.CompletedAt = &completedAt
+	return nil, fmt.Errorf("step execution exhausted retries")
+}
 
-	/* Update step execution */
-	if err := e.queries.UpdateWorkflowStepExecution(ctx, stepExecution); err != nil {
-		return nil, fmt.Errorf("failed to update step execution: %w", err)
+/* executeConditionalStep evaluates a boolean expression against merged inputs (shared with AdvancedWorkflowEngine). */
+func (e *Engine) executeConditionalStep(ctx context.Context, step *db.WorkflowStep, inputs map[string]interface{}) (map[string]interface{}, error) {
+	awe := NewAdvancedWorkflowEngine(e, e.queries)
+	condStr := ""
+	if step.Inputs != nil {
+		if c, ok := step.Inputs["condition"].(string); ok {
+			condStr = strings.TrimSpace(c)
+		}
 	}
-
-	return outputs, nil
+	if condStr == "" {
+		if c, ok := inputs["condition"].(string); ok {
+			condStr = strings.TrimSpace(c)
+		}
+	}
+	if condStr == "" {
+		return nil, fmt.Errorf("conditional step requires non-empty condition string in step.inputs.condition or inputs.condition")
+	}
+	ok, err := awe.EvaluateCondition(ctx, condStr, inputs)
+	if err != nil {
+		return nil, fmt.Errorf("conditional evaluation failed: %w", err)
+	}
+	return map[string]interface{}{
+		"result":           ok,
+		"condition":        condStr,
+		"workflow_step_id": step.ID.String(),
+	}, nil
 }
 
 /* executeAgentStep executes an agent step */
-func (e *Engine) executeAgentStep(ctx context.Context, step *db.WorkflowStep, inputs map[string]interface{}) (map[string]interface{}, error) {
+func (e *Engine) executeAgentStep(ctx context.Context, workflowExecutionID uuid.UUID, step *db.WorkflowStep, inputs map[string]interface{}) (map[string]interface{}, error) {
 	if e.runtime == nil {
 		return nil, fmt.Errorf("agent runtime not configured")
 	}
@@ -421,17 +467,19 @@ func (e *Engine) executeAgentStep(ctx context.Context, step *db.WorkflowStep, in
 		return nil, fmt.Errorf("user_message is required and must be a string")
 	}
 
-	/* Get or create session for this agent */
-	session, err := e.queries.GetSession(ctx, uuid.Nil) /* We'll need to create or find a session */
-	if err != nil || session == nil || session.AgentID != agentID {
-		/* Create a new session for this workflow execution */
-		session = &db.Session{
-			AgentID: agentID,
-			Metadata: make(map[string]interface{}),
-		}
-		if err := e.queries.CreateSession(ctx, session); err != nil {
-			return nil, fmt.Errorf("failed to create session: %w", err)
-		}
+	/* Always create a dedicated session for this workflow agent step (avoid uuid.Nil lookup). */
+	meta := map[string]interface{}{
+		"workflow_execution_id": workflowExecutionID.String(),
+		"workflow_step_id":      step.ID.String(),
+		"workflow_step_name":    step.StepName,
+		"source":                "workflow_agent_step",
+	}
+	session := &db.Session{
+		AgentID:  agentID,
+		Metadata: meta,
+	}
+	if err := e.queries.CreateSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create session for workflow agent step: %w", err)
 	}
 
 	/* Execute agent via runtime */
@@ -790,6 +838,23 @@ func getStepTimeoutSeconds(retryConfig db.JSONBMap) int64 {
 		return int64(v)
 	}
 	return 0
+}
+
+/* getRetryBackoff waits between retry attempts (retry_delay_seconds or linear backoff). */
+func getRetryBackoff(retryConfig db.JSONBMap, attempt int) time.Duration {
+	if retryConfig != nil {
+		if sec, ok := retryConfig["retry_delay_seconds"].(float64); ok && sec > 0 {
+			return time.Duration(sec * float64(time.Second))
+		}
+	}
+	if attempt < 1 {
+		return 0
+	}
+	d := time.Duration(attempt) * time.Second
+	if d > 30*time.Second {
+		return 30 * time.Second
+	}
+	return d
 }
 
 /* buildDAG builds a dependency graph and returns steps in topological order */

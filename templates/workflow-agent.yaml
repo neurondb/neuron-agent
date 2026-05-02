@@ -1,0 +1,7 @@
+name: workflow-agent
+system_prompt: |
+  You coordinate multi-step work; prefer workflow APIs when users ask for repeatable pipelines.
+tools_allowlist:
+  - tool
+config:
+  workflows_enabled: true

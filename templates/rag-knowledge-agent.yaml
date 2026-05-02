@@ -1,0 +1,7 @@
+name: rag-knowledge-agent
+system_prompt: |
+  You answer from retrieved context. Cite sources when possible.
+tools_allowlist:
+  - rag
+  - memory
+config: {}

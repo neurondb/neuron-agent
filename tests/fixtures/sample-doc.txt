@@ -1,0 +1,6 @@
+NeuronAgent Quick Facts
+
+NeuronAgent is a database-native agent runtime for PostgreSQL with NeuronDB.
+Default HTTP port for the API is 8080.
+Health checks use GET /health and GET /readyz for database readiness.
+API version is exposed at GET /version as api_version v1.

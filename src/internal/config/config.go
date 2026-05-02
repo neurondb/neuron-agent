@@ -67,8 +67,10 @@ type ToolsConfig struct {
 /* WorkflowConfig already exists with BaseURL; extend with MaxDuration. */
 
 type WorkflowConfig struct {
-	BaseURL      string        `yaml:"base_url"`
-	MaxDuration  time.Duration `yaml:"max_duration"` /* Max total time for a workflow run; 0 = no limit */
+	BaseURL          string        `yaml:"base_url"`
+	MaxDuration      time.Duration `yaml:"max_duration"` /* Max total time for a workflow run; 0 = no limit */
+	ScheduleEnabled  bool          `yaml:"schedule_enabled"`
+	ScheduleInterval time.Duration `yaml:"schedule_interval"` /* Poll interval for cron workflow schedules */
 }
 
 type ServerConfig struct {
@@ -172,6 +174,16 @@ func ApplyProfile(cfg *Config) {
 	}
 }
 
+/* isProductionMode returns true when ENV or profile indicates production deployment. */
+func isProductionMode(cfg *Config) bool {
+	env := strings.TrimSpace(strings.ToLower(os.Getenv("ENV")))
+	if env == "production" || env == "prod" {
+		return true
+	}
+	p := strings.TrimSpace(strings.ToLower(cfg.Profile))
+	return p == "production" || p == "prod"
+}
+
 /* ValidateConfig checks that config values are valid (e.g. timeouts positive) */
 func ValidateConfig(cfg *Config) error {
 	if cfg.Server.ReadTimeout < 0 {
@@ -182,6 +194,15 @@ func ValidateConfig(cfg *Config) error {
 	}
 	if cfg.Distributed.Enabled && cfg.Distributed.RPCTimeout <= 0 {
 		return fmt.Errorf("RPC timeout must be positive when distributed is enabled")
+	}
+	if isProductionMode(cfg) {
+		pw := strings.TrimSpace(cfg.Database.Password)
+		weak := []string{"", "password", "postgres", "admin", "changeme", "neurondb", "neuronagent"}
+		for _, w := range weak {
+			if strings.EqualFold(pw, w) {
+				return fmt.Errorf("production mode: refuse default or empty database password (set a strong DB_PASSWORD)")
+			}
+		}
 	}
 	return nil
 }
@@ -206,7 +227,10 @@ func Redact(cfg *Config) map[string]interface{} {
 		"allowed_origins": cfg.Auth.AllowedOrigins, "websocket_allowed_origins": cfg.Auth.WebSocketAllowedOrigins,
 	}
 	out["logging"] = map[string]interface{}{"level": cfg.Logging.Level, "format": cfg.Logging.Format}
-	out["workflow"] = map[string]interface{}{"base_url": cfg.Workflow.BaseURL}
+	out["workflow"] = map[string]interface{}{
+		"base_url": cfg.Workflow.BaseURL, "max_duration": cfg.Workflow.MaxDuration.String(),
+		"schedule_enabled": cfg.Workflow.ScheduleEnabled, "schedule_interval": cfg.Workflow.ScheduleInterval.String(),
+	}
 	out["distributed"] = map[string]interface{}{
 		"enabled": cfg.Distributed.Enabled, "node_address": cfg.Distributed.NodeAddress, "node_port": cfg.Distributed.NodePort,
 		"rpc_timeout": cfg.Distributed.RPCTimeout.String(), "rpc_secret": "[REDACTED]", "rpc_api_key": "[REDACTED]", "use_tls": cfg.Distributed.UseTLS,

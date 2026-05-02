@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -38,6 +39,8 @@ import (
 	"github.com/neurondb/NeuronAgent/pkg/llm_sql"
 	"github.com/neurondb/NeuronAgent/pkg/neurondb"
 )
+
+const apiVersion = "v1"
 
 var (
 	version   = "latest"
@@ -77,15 +80,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	/* Tool registry: base handlers + module-registered handlers */
-	registry := tools.NewRegistry(app.Queries(), app.DB())
-	if cfg.Tools.Timeout > 0 {
-		registry.SetToolTimeout(cfg.Tools.Timeout)
-	}
-	for name, handler := range app.RegisteredToolHandlers() {
-		registry.RegisterHandler(name, handler)
-	}
-
+	/* Tool registry: NeuronDB handlers + base handlers + module-registered handlers */
+	var registry *tools.Registry
 	var embedClient *neurondb.EmbeddingClient
 	var ragClient *neurondb.RAGClient
 	var hybridClient *neurondb.HybridSearchClient
@@ -94,8 +90,19 @@ func main() {
 		embedClient = ndbClient.Embedding
 		ragClient = ndbClient.RAG
 		hybridClient = ndbClient.HybridSearch
+		registry = tools.NewRegistryWithNeuronDB(app.Queries(), app.DB(), ndbClient)
+	} else {
+		registry = tools.NewRegistry(app.Queries(), app.DB())
 	}
+	if cfg.Tools.Timeout > 0 {
+		registry.SetToolTimeout(cfg.Tools.Timeout)
+	}
+	for name, handler := range app.RegisteredToolHandlers() {
+		registry.RegisterHandler(name, handler)
+	}
+
 	runtime := agent.NewRuntime(app.DB(), app.Queries(), registry, embedClient, ragClient, hybridClient)
+	agent.RegisterRetrievalToolOnRegistry(registry, runtime)
 	handlers := api.NewHandlers(app.Queries(), runtime)
 
 	/* Workflow engine with audit and tool registry */
@@ -108,6 +115,22 @@ func main() {
 	auditLogger := auth.NewAuditLogger(app.Queries())
 	workflowEngine.SetAuditLogger(auditLogger)
 	workflowHandlers := api.NewWorkflowHandlers(app.Queries(), workflowEngine)
+
+	var scheduleStop context.CancelFunc
+	if cfg.Workflow.ScheduleEnabled && app.DB() != nil {
+		interval := cfg.Workflow.ScheduleInterval
+		if interval <= 0 {
+			interval = 30 * time.Second
+		}
+		var sctx context.Context
+		sctx, scheduleStop = context.WithCancel(context.Background())
+		workflow.NewScheduleRunner(app.Queries(), workflowEngine, interval).Start(sctx)
+	}
+	defer func() {
+		if scheduleStop != nil {
+			scheduleStop()
+		}
+	}()
 
 	llmBaseURL := os.Getenv("LLM_SQL_BASE_URL")
 	if llmBaseURL == "" {
@@ -142,6 +165,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Module start failed: %v\n", err)
 		os.Exit(1)
 	}
+
+	cfgSummary := config.Redact(cfg)
+	fmt.Fprintf(os.Stdout, "NeuronAgent starting addr=%s version=%s api=%s profile=%s config=%v\n",
+		addr, version, apiVersion, cfg.Profile, cfgSummary)
 
 	go func() {
 		metrics.InfoWithContext(context.Background(), "NeuronAgent server starting", map[string]interface{}{
@@ -200,12 +227,52 @@ func buildRouter(cfg *config.Config, h *api.Handlers, sqlLlm *api.SQLLLMHandlers
 
 	adminHandlers := api.NewAdminHandlers(cfg, app)
 
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	healthHandler := func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}
+	r.HandleFunc("/health", healthHandler).Methods(http.MethodGet)
+	r.HandleFunc("/healthz", healthHandler).Methods(http.MethodGet)
+
+	r.HandleFunc("/readyz", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if app.DB() == nil || app.DB().DB == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"ready":false,"reason":"no_database"}`))
+			return
+		}
+		ctx, cancel := context.WithTimeout(req.Context(), 2*time.Second)
+		defer cancel()
+		if err := app.DB().DB.PingContext(ctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"ready":false,"reason":"database_ping_failed"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ready":true}`))
 	}).Methods(http.MethodGet)
+
+	r.HandleFunc("/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		payload := map[string]interface{}{
+			"version":             version,
+			"build_date":          buildDate,
+			"git_commit":          vcsRef,
+			"api_version":         apiVersion,
+			"runtime_mode":        cfg.Profile,
+			"neurondb_compatible": true,
+			"migration_version":   "schema_managed",
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(payload)
+	}).Methods(http.MethodGet)
+
 	r.Handle("/metrics", metrics.Handler()).Methods(http.MethodGet)
+
+	/* API docs: OpenAPI YAML + Redoc (no auth — same as health/metrics) */
+	r.HandleFunc("/docs", api.DocsIndex).Methods(http.MethodGet)
+	r.HandleFunc("/docs/openapi.yaml", api.DocsOpenAPISpec).Methods(http.MethodGet)
 
 	/* WebSocket: stream agent responses (before middleware that might block upgrade) */
 	r.HandleFunc("/ws", api.HandleWebSocket(runtime, keyManager, cfg))

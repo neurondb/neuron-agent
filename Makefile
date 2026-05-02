@@ -1,4 +1,7 @@
-.PHONY: build test clean run migrate docker-build docker-up docker-down neuronsql-serve neuronsql-eval neuronsql-ingest neuronsql-demo docker-neuronsql-up docker-neuronsql-down openapi-validate security-lint deps-scan integration-test
+.PHONY: build test clean run migrate docker-build docker-up docker-down up down logs reset demo smoke install \
+	neuronsql-serve neuronsql-eval neuronsql-ingest neuronsql-demo docker-neuronsql-up docker-neuronsql-down \
+	openapi-validate security-lint deps-scan integration-test \
+	up-neurondb down-neurondb build-neurondb-pg
 
 # Build the application
 build:
@@ -42,6 +45,12 @@ test-coverage:
 	@cd src && go test -v -race -coverprofile=coverage.out ./...
 	@cd src && go tool cover -html=coverage.out -o coverage.html
 
+# Copy OpenAPI spec for go:embed (run after editing src/openapi/openapi.yaml)
+sync-openapi:
+	@mkdir -p src/internal/api/specdata
+	@cp -f src/openapi/openapi.yaml src/internal/api/specdata/openapi.yaml
+	@echo "Synced openapi.yaml → internal/api/specdata"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning..."
@@ -73,15 +82,53 @@ docker-build:
 	@echo "Building Docker image..."
 	@docker build -t neuronagent:latest -f docker/Dockerfile .
 
-# Docker compose: NeuronSQL stack (postgres + pglang + neuronagent). No standalone agent-only compose in repo; use docker-build + docker run for agent image, or neurondb repo for full stack.
+# Root stack: postgres + neuronagent (see docker-compose.yml)
+up:
+	@echo "Starting root docker-compose stack..."
+	@docker compose up -d
+
+down:
+	@echo "Stopping root docker-compose stack..."
+	@docker compose down
+
+# Postgres built from local NeuronDB repo (set NEURONDB_REPO in .env; default ../neurondb)
+up-neurondb:
+	@echo "Starting stack with NeuronDB-backed PostgreSQL..."
+	@docker compose -f docker-compose.yml -f docker-compose.neurondb.yml up -d --build
+
+down-neurondb:
+	@echo "Stopping NeuronDB compose stack..."
+	@docker compose -f docker-compose.yml -f docker-compose.neurondb.yml down
+
+# Build only the database image (same Dockerfile as NeuronDB upstream cpu image)
+build-neurondb-pg:
+	@echo "Building NeuronDB Postgres image (NEURONDB_REPO=${NEURONDB_REPO})..."
+	@docker compose -f docker-compose.yml -f docker-compose.neurondb.yml build postgres
+
+logs:
+	@bash scripts/logs.sh
+
+reset:
+	@bash scripts/reset.sh
+
+demo:
+	@bash scripts/demo.sh
+
+smoke:
+	@bash scripts/smoke-test.sh
+
+install:
+	@bash scripts/install.sh
+
+# Docker compose: NeuronSQL stack (postgres + pglang + neuronagent)
 docker-up:
 	@echo "Starting Docker Compose (NeuronSQL stack)..."
-	@docker-compose -f docker/docker-compose.neuronsql.yml up -d
+	@docker compose -f docker/docker-compose.neuronsql.yml up -d
 
 # Docker compose down
 docker-down:
 	@echo "Stopping Docker Compose..."
-	@docker-compose -f docker/docker-compose.neuronsql.yml down
+	@docker compose -f docker/docker-compose.neuronsql.yml down
 
 # Install dependencies
 deps:
@@ -112,10 +159,10 @@ neuronsql-demo: docker-neuronsql-up
 	@echo "NeuronSQL demo up. Try: scripts/demo_neuronsql_generate.sh"
 
 docker-neuronsql-up:
-	@docker-compose -f docker/docker-compose.neuronsql.yml up -d --build
+	@docker compose -f docker/docker-compose.neuronsql.yml up -d --build
 
 docker-neuronsql-down:
-	@docker-compose -f docker/docker-compose.neuronsql.yml down
+	@docker compose -f docker/docker-compose.neuronsql.yml down
 
 # Validate OpenAPI 3 spec (requires Node npx or install @apidevtools/swagger-cli)
 openapi-validate:
@@ -142,9 +189,8 @@ deps-scan:
 	@echo "Scanning dependencies for vulnerabilities..."
 	@cd src && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
-# Integration test: start fixtures, run tests, tear down (optional; extend with real integration tests)
+# Integration test: Go tests under internal packages (short mode)
 integration-test: build
 	@echo "Running integration test harness..."
-	@cd src && go test -v -count=1 ./internal/... -short 2>/dev/null || true
-	@echo "Integration test complete (add docker-compose up/down and API tests as needed)"
+	@cd src && go test -count=1 ./internal/... -short
 

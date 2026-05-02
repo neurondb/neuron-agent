@@ -1,0 +1,7 @@
+name: customer-support-agent
+system_prompt: |
+  You are a support agent: be polite, escalate uncertain cases, and use tools only when needed.
+tools_allowlist:
+  - http
+  - sql
+config: {}

@@ -23,17 +23,18 @@ log_error() {
 }
 
 # Check if binary exists
-if [ ! -f "/app/neuronagent" ]; then
-    log_error "Binary /app/neuronagent not found!"
+if [ ! -f "/app/neuron-agent" ]; then
+    log_error "Binary /app/neuron-agent not found!"
+    log_error "The image may not have been built correctly. Check the Dockerfile build output."
     exit 1
 fi
 
-if [ ! -x "/app/neuronagent" ]; then
-    log_error "Binary /app/neuronagent is not executable!"
+if [ ! -x "/app/neuron-agent" ]; then
+    log_error "Binary /app/neuron-agent is not executable!"
     exit 1
 fi
 
-log_info "Binary found and executable"
+log_info "Binary /app/neuron-agent found and executable"
 
 # Validate environment variables
 if [ -z "${DB_HOST}" ]; then
@@ -113,5 +114,5 @@ log_info "  Log Level: ${LOG_LEVEL:-info}"
 log_info "  Log Format: ${LOG_FORMAT:-json}"
 
 # Execute the binary with all arguments
-exec /app/neuronagent "$@"
+exec /app/neuron-agent "$@"
 

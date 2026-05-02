@@ -47,7 +47,9 @@ func DefaultConfig() *Config {
 			Format: "json",
 		},
 		Workflow: WorkflowConfig{
-			BaseURL: "http://localhost:8080",
+			BaseURL:          "http://localhost:8080",
+			ScheduleEnabled:  true,
+			ScheduleInterval: 30 * time.Second,
 		},
 		Distributed: DistributedConfig{
 			Enabled:     false,

@@ -527,7 +527,7 @@ func (h *WorkflowHandlers) CreateWorkflowSchedule(w http.ResponseWriter, r *http
 	var req struct {
 		CronExpression string     `json:"cron_expression"`
 		Timezone       string     `json:"timezone,omitempty"`
-		Enabled        bool       `json:"enabled,omitempty"`
+		Enabled        *bool      `json:"enabled,omitempty"`
 		NextRunAt      *time.Time `json:"next_run_at,omitempty"`
 	}
 
@@ -546,12 +546,24 @@ func (h *WorkflowHandlers) CreateWorkflowSchedule(w http.ResponseWriter, r *http
 		req.Timezone = "UTC"
 	}
 
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	nextAt := req.NextRunAt
+	if nextAt == nil {
+		if n, err := workflow.NextScheduledRun(req.CronExpression, req.Timezone, time.Now()); err == nil {
+			nextAt = &n
+		}
+	}
+
 	schedule := &db.WorkflowSchedule{
 		WorkflowID:     workflowID,
 		CronExpression: req.CronExpression,
 		Timezone:       req.Timezone,
-		Enabled:        req.Enabled,
-		NextRunAt:      req.NextRunAt,
+		Enabled:        enabled,
+		NextRunAt:      nextAt,
 	}
 
 	if err := h.queries.CreateWorkflowSchedule(r.Context(), schedule); err != nil {
